@@ -14,13 +14,27 @@
 // On any error (except malloc) prints error with perror and returns NULL
 char* read_file(const char* name);
 
+Token* lex_file(char* content);
+
 int main() {
     char* file_content = read_file("test.nsl");
 
+
+    Token* tokens = lex_file(file_content);
+
+    for (ptrdiff_t i = 0; i < arrlen(tokens); i++) Token_print(tokens[i]);
+
+    free(file_content);
+    arrfree(tokens);
+
+	return 0;
+}
+
+Token* lex_file(char* content) {
     Lexer lexer = {
         .source = {
-            .first = file_content,
-            .current = file_content,
+            .first = content,
+            .current = content,
             .loc = {.col = 1, .row = 1},
         },
         .tokens = NULL, 
@@ -29,17 +43,9 @@ int main() {
     while (!Lexer_is_finished(&lexer)) {
         Lexer_skip_ws(&lexer);
         if (Lexer_is_finished(&lexer)) break;
-        if (!Lexer_parse_token(&lexer)) return 1;
+        if (!Lexer_parse_token(&lexer)) return NULL;
     }
-
-    for (ptrdiff_t i = 0; i < arrlen(lexer.tokens); i++) {
-        Token_print(lexer.tokens[i]);
-    }
-
-    free(file_content);
-    arrfree(lexer.tokens);
-
-	return 0;
+    return lexer.tokens;
 }
 
 
