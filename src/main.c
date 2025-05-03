@@ -13,22 +13,20 @@
 // Returns a null terminaed string of the file in `name`
 // On any error (except malloc) prints error with perror and returns NULL
 char* read_file(const char* name);
-
 Token* lex_file(char* content);
 
 int main() {
     char* file_content = read_file("test.nsl");
 
-
     Token* tokens = lex_file(file_content);
-
-    for (ptrdiff_t i = 0; i < arrlen(tokens); i++) Token_print(tokens[i]);
+    for (ptrdiff_t i = 0; i < arrlen(tokens); i++) token_print(tokens[i]);
 
     free(file_content);
     arrfree(tokens);
 
 	return 0;
 }
+
 
 Token* lex_file(char* content) {
     Lexer lexer = {
@@ -40,10 +38,10 @@ Token* lex_file(char* content) {
         .tokens = NULL, 
     };
     
-    while (!Lexer_is_finished(&lexer)) {
-        Lexer_skip_ws(&lexer);
-        if (Lexer_is_finished(&lexer)) break;
-        if (!Lexer_parse_token(&lexer)) return NULL;
+    while (!lexer_is_finished(&lexer)) {
+        lexer_skip_ws(&lexer);
+        if (lexer_is_finished(&lexer)) break;
+        if (!lexer_parse_token(&lexer)) return NULL;
     }
     return lexer.tokens;
 }

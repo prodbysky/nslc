@@ -7,11 +7,11 @@
 
 #include "../extern/stb_ds.h"
 
-bool Lexer_is_finished(const Lexer* lexer) {
+bool lexer_is_finished(const Lexer* lexer) {
     return *lexer->source.current == 0;
 }
 
-char Lexer_next(Lexer* lexer) {
+char lexer_next(Lexer* lexer) {
     if (*lexer->source.current == '\n') {
         lexer->source.loc.col++;
         lexer->source.loc.row = 1;
@@ -20,23 +20,24 @@ char Lexer_next(Lexer* lexer) {
     }
     return *(lexer->source.current++);
 }
-char Lexer_peek(const Lexer* lexer) {
+char lexer_peek(const Lexer* lexer) {
     return *(lexer->source.current);
 }
 
-const char* Lexer_skip_while(Lexer* lexer, int (*pred)(int)) {
-    while (pred(Lexer_peek(lexer)) && !Lexer_is_finished(lexer)) Lexer_next(lexer);
+const char* lexer_skip_while(Lexer* lexer, int (*pred)(int)) {
+    while (pred(lexer_peek(lexer)) && !lexer_is_finished(lexer)) lexer_next(lexer);
     return lexer->source.current;
 }
 
-const char* Lexer_skip_ws(Lexer* lexer) {
-    return Lexer_skip_while(lexer, isspace);
+const char* lexer_skip_ws(Lexer* lexer) {
+    return lexer_skip_while(lexer, isspace);
 }
 
-bool Lexer_parse_token(Lexer* lexer) {
-    if (isdigit(Lexer_peek(lexer))) {
+bool lexer_parse_token(Lexer* lexer) {
+    if (isdigit(lexer_peek(lexer))) {
         const char* begin = lexer->source.current;
-        const char* end = Lexer_skip_while(lexer, isdigit);
+        Location loc = lexer->source.loc;
+        const char* end = lexer_skip_while(lexer, isdigit);
 
         if (isalpha(*end)) {
             fprintf(stderr, "ERROR: ./%lu:%lu Unexpected letter near number literal\n", lexer->source.loc.col, lexer->source.loc.row);
@@ -46,6 +47,7 @@ bool Lexer_parse_token(Lexer* lexer) {
         char* expected_end;
         const Token token = {
             .type = TT_NUMBER,
+            .loc = loc,
             .as = {
                 .number = strtoul(begin, &expected_end, 10)
             },
@@ -54,10 +56,12 @@ bool Lexer_parse_token(Lexer* lexer) {
 
         arrput(lexer->tokens, token);
         return true;
-    } else if (Lexer_peek(lexer) == '+') {
-        Lexer_next(lexer);
+    } else if (lexer_peek(lexer) == '+') {
+        Location loc = lexer->source.loc;
+        lexer_next(lexer);
         const Token token = {
             .type = TT_OPERATOR,
+            .loc = loc,
             .as = {
                 .operator = '+',
             },
@@ -68,13 +72,13 @@ bool Lexer_parse_token(Lexer* lexer) {
     return false;
 }
 
-void Token_print(Token t) {
+void token_print(Token t) {
     switch (t.type) {
         case TT_NUMBER: {
-            printf("%lu\n", t.as.number);
+            printf("%lu:%lu %lu\n", t.loc.col, t.loc.row, t.as.number);
         }
         case TT_OPERATOR: {
-            printf("%c\n", t.as.operator);
+            printf("%lu:%lu %c\n", t.loc.col, t.loc.row, t.as.operator);
         }
     }
 }
