@@ -11,6 +11,11 @@
 #include "lexer.h"
 #include "parser.h"
 #include "arena.h"
+#include "qbe.h"
+
+#define NOB_IMPLEMENTATION
+#define NOB_STRIP_PREFIX
+#include "../nob.h"
 
 // Returns a null terminaed string of the file in `name`
 // On any error (except malloc) prints error with perror and returns NULL
@@ -41,10 +46,36 @@ int main() {
         arrput(parser.statements, parser_statement(&parser));
     }
 
+    QBEModule mod = qbe_module_new();
+    QBEFunction* main = qbe_module_create_function(&mod, "main", QVT_WORD);
+    QBEBlock* entry = qbe_function_push_block(main, "entry");
+    QBEInstruction return_value = {
+        .type = QIT_RETURN,
+        .ret = {
+            .i = 0
+        },
+    };
+
+    qbe_block_push_ins(entry, return_value);
+
+    FILE* qbe_ir_file = fopen("main.ssa", "w");
+    qbe_module_write(&mod, qbe_ir_file);
+    fclose(qbe_ir_file);
+
+    Cmd cmd = {0};
+    cmd_append(&cmd, "qbe", "-o", "main.s", "main.ssa");
+    if (!cmd_run_sync_and_reset(&cmd)) return 1;
+    cmd_append(&cmd, "cc", "-o", "main", "main.s");
+    if (!cmd_run_sync_and_reset(&cmd)) return 1;
+    cmd_append(&cmd, "rm", "main.s", "main.ssa");
+    if (!cmd_run_sync_and_reset(&cmd)) return 1;
+    free(cmd.items);
+
     free(file_content);
     arrfree(lexer.tokens);
     arrfree(parser.statements);
     arena_delete(&arena);
+    qbe_module_destroy(&mod);
 
 	return 0;
 }
@@ -91,5 +122,4 @@ char* read_file(const char* name) {
 
     fclose(file);
     return buffer;
-
 }
