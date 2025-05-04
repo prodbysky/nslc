@@ -28,8 +28,40 @@ const char* TokenTypeReadable[TT_COUNT] = {
 };
 
 
-int main() {
-    char* file_content = read_file("test.nsl");
+void usage(const char* prog_name) {
+    fprintf(stderr, "Usage:\n");
+    fprintf(stderr, "    %s <input.nsl> [OPTIONS]\n", prog_name);
+    fprintf(stderr, "Options:\n");
+    fprintf(stderr, "    -o <output> : specifies the output executable name\n");
+}
+
+
+int main(int argc, char** argv) {
+    char* output_name = "a.out";
+    char* input_name = NULL;
+
+    for (int i = 1; i < argc; i++) {
+        printf("%s\n", argv[i]);
+        if (strcmp("-o", argv[i]) == 0) {
+            if (i + 1 >= argc) {
+                fprintf(stderr, "ERROR: Output name not specified\n");
+                usage(argv[0]);
+                return 1;
+            }
+            output_name = argv[i + 1];
+            i++;
+        } else {
+            input_name = argv[i];
+        }
+    }
+
+    if (input_name == NULL) {
+        fprintf(stderr, "ERROR: Input file name not specified\n");
+        usage(argv[0]);
+        return 1;
+    }
+
+    char* file_content = read_file(input_name);
 
     Arena arena = arena_new(1024 * 10);
 
@@ -65,7 +97,7 @@ int main() {
     Cmd cmd = {0};
     cmd_append(&cmd, "qbe", "-o", "main.s", "main.ssa");
     if (!cmd_run_sync_and_reset(&cmd)) return 1;
-    cmd_append(&cmd, "cc", "-o", "main", "main.s");
+    cmd_append(&cmd, "cc", "-o", output_name, "main.s");
     if (!cmd_run_sync_and_reset(&cmd)) return 1;
     cmd_append(&cmd, "rm", "main.s", "main.ssa");
     if (!cmd_run_sync_and_reset(&cmd)) return 1;
