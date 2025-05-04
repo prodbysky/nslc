@@ -2,11 +2,14 @@
 #define LEXER_H_
 #include <stdbool.h>
 #include <stdint.h>
+#include "arena.h"
 
 typedef enum {
     TT_NUMBER,
     TT_OPERATOR,
+    TT_COUNT,
 } TokenType;
+
 
 typedef struct {
     ptrdiff_t row, col;
@@ -18,6 +21,7 @@ typedef struct {
     union {
         uint64_t number;
         char operator;
+        char* ident;
     } as;
 } Token;
 
@@ -29,6 +33,7 @@ typedef struct {
         Location loc;
     } source;
     Token* tokens;
+    Arena* arena;
 } Lexer;
 
 

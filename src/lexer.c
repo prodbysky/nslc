@@ -56,19 +56,25 @@ bool lexer_parse_token(Lexer* lexer) {
 
         arrput(lexer->tokens, token);
         return true;
-    } else if (lexer_peek(lexer) == '+') {
-        Location loc = lexer->source.loc;
-        lexer_next(lexer);
-        const Token token = {
-            .type = TT_OPERATOR,
-            .loc = loc,
-            .as = {
-                .operator = '+',
-            },
-        };
-        arrput(lexer->tokens, token);
-        return true;
-    }
+    // TODO: Shrink this down
+    switch (lexer_peek(lexer)) {
+            case '+': case '-': case '*': case '/': {
+                Location loc = lexer->source.loc;
+                char saved = lexer_peek(lexer);
+                lexer_next(lexer);
+                const Token token = {
+                    .type = TT_OPERATOR,
+                    .loc = loc,
+                    .as = {
+                        .operator = saved,
+                    },
+                };
+                arrput(lexer->tokens, token);
+                return true;
+            }
+        }
+    } 
+
     return false;
 }
 
@@ -80,5 +86,6 @@ void token_print(Token t) {
         case TT_OPERATOR: {
             printf("%lu:%lu %c\n", t.loc.col, t.loc.row, t.as.operator);
         }
+        case TT_COUNT: {}
     }
 }
