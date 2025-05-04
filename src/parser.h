@@ -36,7 +36,7 @@ typedef struct {
 
 typedef struct {
     Token* tokens;
-    size_t pos;
+    ptrdiff_t pos;
     Statement* statements;
     Arena* arena;
 } Parser;

@@ -3,7 +3,7 @@
 #include "nob.h"
 
 void common_flags(Cmd* cmd) {
-    cmd_append(cmd, "-Wall", "-Werror", "-g", "-fsanitize=address");
+    cmd_append(cmd, "-Wall", "-Wextra", "-Werror", "-g", "-fsanitize=address");
 }
 
 int main(int argc, char** argv) {

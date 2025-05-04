@@ -89,10 +89,12 @@ Statement parser_statement(Parser* parser) {
                     },
                 };
             }
+            break;
         }
         default: {
             fprintf(stderr, "Unexpected token type when trying to parse statement\n");
             return (Statement) {0};
         }
     }
+    assert(false);
 }

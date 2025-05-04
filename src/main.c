@@ -21,6 +21,7 @@
 // On any error (except malloc) prints error with perror and returns NULL
 char* read_file(const char* name);
 Lexer lex_file(char* content, Arena* arena);
+Parser parse_file(Token* tokens, Arena* arena);
 
 const char* TokenTypeReadable[TT_COUNT] = {
     [TT_NUMBER] = "Number",
@@ -35,13 +36,21 @@ void usage(const char* prog_name) {
     fprintf(stderr, "    -o <output> : specifies the output executable name\n");
 }
 
+typedef struct {
+    QBEModule mod;
+    QBEFunction* main;
+    QBEBlock* entry;
+    size_t temp_count;
+} Codegen;
+
+void generate_code(Codegen* codegen, Statement* sts);
+QBEValue generate_expr(Codegen* codegen, const Expr* expr);
 
 int main(int argc, char** argv) {
     char* output_name = "a.out";
     char* input_name = NULL;
 
     for (int i = 1; i < argc; i++) {
-        printf("%s\n", argv[i]);
         if (strcmp("-o", argv[i]) == 0) {
             if (i + 1 >= argc) {
                 fprintf(stderr, "ERROR: Output name not specified\n");
@@ -66,29 +75,21 @@ int main(int argc, char** argv) {
     Arena arena = arena_new(1024 * 10);
 
     Lexer lexer = lex_file(file_content, &arena);
+    Parser parser = parse_file(lexer.tokens, &arena);
 
-    Parser parser = {
-        .tokens = lexer.tokens,
-        .pos = 0,
-        .statements = NULL,
-        .arena = &arena
-    };
-
-    while (!parser_is_finished(&parser)) {
-        arrput(parser.statements, parser_statement(&parser));
-    }
 
     QBEModule mod = qbe_module_new();
     QBEFunction* main = qbe_module_create_function(&mod, "main", QVT_WORD);
     QBEBlock* entry = qbe_function_push_block(main, "entry");
-    QBEInstruction return_value = {
-        .type = QIT_RETURN,
-        .ret = {
-            .i = 0
-        },
+
+    Codegen codegen = {
+        .mod = mod, 
+        .main = main, 
+        .entry = entry, 
+        .temp_count = 0, 
     };
 
-    qbe_block_push_ins(entry, return_value);
+    generate_code(&codegen, parser.statements);
 
     FILE* qbe_ir_file = fopen("main.ssa", "w");
     qbe_module_write(&mod, qbe_ir_file);
@@ -112,6 +113,108 @@ int main(int argc, char** argv) {
 	return 0;
 }
 
+void generate_code(Codegen* codegen, Statement* sts) {
+    for (ptrdiff_t i = 0; i < arrlen(sts); i++) {
+        Statement* st = &sts[i];
+        switch (st->type) {
+            case ST_RETURN: {
+                QBEValue value = generate_expr(codegen, st->as.ret);
+                qbe_block_push_ins(codegen->entry, (QBEInstruction) {
+                    .type = QIT_RETURN,
+                    .ret = value
+                });
+                break;
+            }
+        }
+    }
+}
+
+QBEValue generate_expr(Codegen* codegen, const Expr* expr) {
+    switch (expr->type) {
+        case ET_NUMBER: {
+            return (QBEValue) {
+                .kind = QVK_CONST,
+                .const_i = expr->as.number
+            };
+        }
+        case ET_BINARY: {
+            QBEValue left = generate_expr(codegen, expr->as.binary.left);
+            QBEValue right = generate_expr(codegen, expr->as.binary.right);
+            char buffer[16] = {0};
+            switch (expr->as.binary.op) {
+                case '+': {
+                    const size_t storage_index = codegen->temp_count++;
+                    snprintf(buffer, 16, "t%zu", storage_index);
+
+                    QBEValue result = { .kind = QVK_TEMP, .name = strndup(buffer, 16) };
+
+                    qbe_block_assign_ins(
+                        codegen->entry, 
+                        (QBEInstruction) {
+                            .type = QIT_ADD,
+                            .add = { .left = left, .right = right }, 
+                        }, 
+                        QVT_WORD, 
+                        result
+                    );
+                    return result; 
+                }
+                case '-': {
+                    const size_t storage_index = codegen->temp_count++;
+                    snprintf(buffer, 16, "t%zu", storage_index);
+
+                    QBEValue result = { .kind = QVK_TEMP, .name = strndup(buffer, 16) };
+
+                    qbe_block_assign_ins(
+                        codegen->entry, 
+                        (QBEInstruction) {
+                            .type = QIT_SUB,
+                            .sub = { .left = left, .right = right }, 
+                        }, 
+                        QVT_WORD, 
+                        result
+                    );
+                    return result; 
+                }
+                case '*': {
+                    const size_t storage_index = codegen->temp_count++;
+                    snprintf(buffer, 16, "t%zu", storage_index);
+
+                    QBEValue result = { .kind = QVK_TEMP, .name = strndup(buffer, 16) };
+
+                    qbe_block_assign_ins(
+                        codegen->entry, 
+                        (QBEInstruction) {
+                            .type = QIT_MUL,
+                            .mul = { .left = left, .right = right }, 
+                        }, 
+                        QVT_WORD, 
+                        result
+                    );
+                    return result; 
+                }
+                case '/': {
+                    const size_t storage_index = codegen->temp_count++;
+                    snprintf(buffer, 16, "t%zu", storage_index);
+
+                    QBEValue result = { .kind = QVK_TEMP, .name = strndup(buffer, 16) };
+
+                    qbe_block_assign_ins(
+                        codegen->entry, 
+                        (QBEInstruction) {
+                            .type = QIT_DIV,
+                            .div = { .left = left, .right = right }, 
+                        }, 
+                        QVT_WORD, 
+                        result
+                    );
+                    return result; 
+                }
+            }
+        }
+    }
+    assert(false && "Not implemented");
+}
 
 Lexer lex_file(char* content, Arena* arena) {
     Lexer lexer = {
@@ -133,6 +236,20 @@ Lexer lex_file(char* content, Arena* arena) {
         }
     }
     return lexer;
+}
+
+Parser parse_file(Token* tokens, Arena* arena) {
+    Parser parser = {
+        .tokens = tokens,
+        .pos = 0,
+        .statements = NULL,
+        .arena = arena
+    };
+
+    while (!parser_is_finished(&parser)) {
+        arrput(parser.statements, parser_statement(&parser));
+    }
+    return parser;
 }
 
 
