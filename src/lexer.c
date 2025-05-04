@@ -37,7 +37,14 @@ static int isidentchar(int c) {
     return isalpha(c) || c == '_' || isdigit(c);
 }
 
+static int isnewline(int c) {
+    return c == '\n';
+}
+
 bool lexer_parse_token(Lexer* lexer) {
+    if (lexer_peek(lexer) == '#') {
+        lexer_skip_while(lexer, isnewline);
+    }
     if (isdigit(lexer_peek(lexer))) {
         const char* begin = lexer->source.current;
         Location loc = lexer->source.loc;
