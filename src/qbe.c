@@ -111,6 +111,17 @@ void qbe_statement_write(const QBEStatement* statement, FILE* file) {
     }
 }
 
+void qbe_write_left_right(const QBEValue* left, const QBEValue* right, FILE* file) {
+    switch (left->kind) {
+        case QVK_CONST: fprintf(file, "%lu, ", left->const_i); break;
+        case QVK_TEMP: fprintf(file, "%%%s, ", left->name); break;
+    }
+    switch (right->kind) {
+        case QVK_CONST: fprintf(file, "%lu", right->const_i); break;
+        case QVK_TEMP: fprintf(file, "%%%s", right->name); break;
+    }
+}
+
 void qbe_instruction_write(const QBEInstruction* instruction, FILE* file) {
     switch (instruction->type) {
         case QIT_RETURN: {
@@ -124,53 +135,25 @@ void qbe_instruction_write(const QBEInstruction* instruction, FILE* file) {
         }
         case QIT_ADD: {
             fprintf(file, "add ");
-            switch (instruction->add.left.kind) {
-                case QVK_CONST: fprintf(file, "%lu, ", instruction->add.left.const_i); break;
-                case QVK_TEMP: fprintf(file, "%%%s, ", instruction->add.left.name); break;
-            }
-            switch (instruction->add.right.kind) {
-                case QVK_CONST: fprintf(file, "%lu", instruction->add.right.const_i); break;
-                case QVK_TEMP: fprintf(file, "%%%s", instruction->add.right.name); break;
-            }
+            qbe_write_left_right(&instruction->add.left, &instruction->add.right, file);
             fprintf(file, "\n");
             break;
         }
         case QIT_SUB: {
             fprintf(file, "sub ");
-            switch (instruction->sub.left.kind) {
-                case QVK_CONST: fprintf(file, "%lu, ", instruction->sub.left.const_i); break;
-                case QVK_TEMP: fprintf(file, "%%%s, ", instruction->sub.left.name); break;
-            }
-            switch (instruction->sub.right.kind) {
-                case QVK_CONST: fprintf(file, "%lu", instruction->sub.right.const_i); break;
-                case QVK_TEMP: fprintf(file, "%%%s", instruction->sub.right.name); break;
-            }
+            qbe_write_left_right(&instruction->sub.left, &instruction->sub.right, file);
             fprintf(file, "\n");
             break;
         }
         case QIT_MUL: {
             fprintf(file, "mul ");
-            switch (instruction->mul.left.kind) {
-                case QVK_CONST: fprintf(file, "%lu, ", instruction->mul.left.const_i); break;
-                case QVK_TEMP: fprintf(file, "%%%s, ", instruction->mul.left.name); break;
-            }
-            switch (instruction->mul.right.kind) {
-                case QVK_CONST: fprintf(file, "%lu", instruction->mul.right.const_i); break;
-                case QVK_TEMP: fprintf(file, "%%%s", instruction->mul.right.name); break;
-            }
+            qbe_write_left_right(&instruction->mul.left, &instruction->mul.right, file);
             fprintf(file, "\n");
             break;
         }
         case QIT_DIV: {
             fprintf(file, "div ");
-            switch (instruction->div.left.kind) {
-                case QVK_CONST: fprintf(file, "%lu, ", instruction->div.left.const_i); break;
-                case QVK_TEMP: fprintf(file, "%%%s, ", instruction->div.left.name); break;
-            }
-            switch (instruction->div.right.kind) {
-                case QVK_CONST: fprintf(file, "%lu", instruction->div.right.const_i); break;
-                case QVK_TEMP: fprintf(file, "%%%s", instruction->div.right.name); break;
-            }
+            qbe_write_left_right(&instruction->div.left, &instruction->div.right, file);
             fprintf(file, "\n");
             break;
         }

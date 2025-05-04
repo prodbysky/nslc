@@ -12,6 +12,7 @@
 #include "parser.h"
 #include "arena.h"
 #include "qbe.h"
+#include "codegen.h"
 
 #define NOB_IMPLEMENTATION
 #define NOB_STRIP_PREFIX
@@ -35,16 +36,6 @@ void usage(const char* prog_name) {
     fprintf(stderr, "Options:\n");
     fprintf(stderr, "    -o <output> : specifies the output executable name\n");
 }
-
-typedef struct {
-    QBEModule mod;
-    QBEFunction* main;
-    QBEBlock* entry;
-    size_t temp_count;
-} Codegen;
-
-void generate_code(Codegen* codegen, Statement* sts);
-QBEValue generate_expr(Codegen* codegen, const Expr* expr);
 
 int main(int argc, char** argv) {
     char* output_name = "a.out";
@@ -111,109 +102,6 @@ int main(int argc, char** argv) {
     qbe_module_destroy(&mod);
 
 	return 0;
-}
-
-void generate_code(Codegen* codegen, Statement* sts) {
-    for (ptrdiff_t i = 0; i < arrlen(sts); i++) {
-        Statement* st = &sts[i];
-        switch (st->type) {
-            case ST_RETURN: {
-                QBEValue value = generate_expr(codegen, st->as.ret);
-                qbe_block_push_ins(codegen->entry, (QBEInstruction) {
-                    .type = QIT_RETURN,
-                    .ret = value
-                });
-                break;
-            }
-        }
-    }
-}
-
-QBEValue generate_expr(Codegen* codegen, const Expr* expr) {
-    switch (expr->type) {
-        case ET_NUMBER: {
-            return (QBEValue) {
-                .kind = QVK_CONST,
-                .const_i = expr->as.number
-            };
-        }
-        case ET_BINARY: {
-            QBEValue left = generate_expr(codegen, expr->as.binary.left);
-            QBEValue right = generate_expr(codegen, expr->as.binary.right);
-            char buffer[16] = {0};
-            switch (expr->as.binary.op) {
-                case '+': {
-                    const size_t storage_index = codegen->temp_count++;
-                    snprintf(buffer, 16, "t%zu", storage_index);
-
-                    QBEValue result = { .kind = QVK_TEMP, .name = strndup(buffer, 16) };
-
-                    qbe_block_assign_ins(
-                        codegen->entry, 
-                        (QBEInstruction) {
-                            .type = QIT_ADD,
-                            .add = { .left = left, .right = right }, 
-                        }, 
-                        QVT_WORD, 
-                        result
-                    );
-                    return result; 
-                }
-                case '-': {
-                    const size_t storage_index = codegen->temp_count++;
-                    snprintf(buffer, 16, "t%zu", storage_index);
-
-                    QBEValue result = { .kind = QVK_TEMP, .name = strndup(buffer, 16) };
-
-                    qbe_block_assign_ins(
-                        codegen->entry, 
-                        (QBEInstruction) {
-                            .type = QIT_SUB,
-                            .sub = { .left = left, .right = right }, 
-                        }, 
-                        QVT_WORD, 
-                        result
-                    );
-                    return result; 
-                }
-                case '*': {
-                    const size_t storage_index = codegen->temp_count++;
-                    snprintf(buffer, 16, "t%zu", storage_index);
-
-                    QBEValue result = { .kind = QVK_TEMP, .name = strndup(buffer, 16) };
-
-                    qbe_block_assign_ins(
-                        codegen->entry, 
-                        (QBEInstruction) {
-                            .type = QIT_MUL,
-                            .mul = { .left = left, .right = right }, 
-                        }, 
-                        QVT_WORD, 
-                        result
-                    );
-                    return result; 
-                }
-                case '/': {
-                    const size_t storage_index = codegen->temp_count++;
-                    snprintf(buffer, 16, "t%zu", storage_index);
-
-                    QBEValue result = { .kind = QVK_TEMP, .name = strndup(buffer, 16) };
-
-                    qbe_block_assign_ins(
-                        codegen->entry, 
-                        (QBEInstruction) {
-                            .type = QIT_DIV,
-                            .div = { .left = left, .right = right }, 
-                        }, 
-                        QVT_WORD, 
-                        result
-                    );
-                    return result; 
-                }
-            }
-        }
-    }
-    assert(false && "Not implemented");
 }
 
 Lexer lex_file(char* content, Arena* arena) {
