@@ -7,6 +7,8 @@
 typedef enum {
     TT_NUMBER,
     TT_OPERATOR,
+    TT_IDENT,
+    TT_SEMICOLON,
     TT_COUNT,
 } TokenType;
 

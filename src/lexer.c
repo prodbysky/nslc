@@ -33,6 +33,10 @@ const char* lexer_skip_ws(Lexer* lexer) {
     return lexer_skip_while(lexer, isspace);
 }
 
+static int isidentchar(int c) {
+    return isalpha(c) || c == '_' || isdigit(c);
+}
+
 bool lexer_parse_token(Lexer* lexer) {
     if (isdigit(lexer_peek(lexer))) {
         const char* begin = lexer->source.current;
@@ -56,24 +60,53 @@ bool lexer_parse_token(Lexer* lexer) {
 
         arrput(lexer->tokens, token);
         return true;
-    // TODO: Shrink this down
+    }
+    if (isalpha(lexer_peek(lexer)) || lexer_peek(lexer) == '_') {
+        const char* begin = lexer->source.current;
+        Location loc = lexer->source.loc;
+        const char* end = lexer_skip_while(lexer, isidentchar);
+        ptrdiff_t len = end - begin;
+        char* str = arena_alloc(lexer->arena, len + 1);
+        strncpy(str, begin,
+                     len);
+        str[len] = 0;
+        const Token token = {
+            .type = TT_IDENT,
+            .loc = loc,
+            .as = {
+                .ident = str
+            },
+        };
+        arrput(lexer->tokens, token);
+        return true;
+    }
+
     switch (lexer_peek(lexer)) {
-            case '+': case '-': case '*': case '/': {
-                Location loc = lexer->source.loc;
-                char saved = lexer_peek(lexer);
-                lexer_next(lexer);
-                const Token token = {
-                    .type = TT_OPERATOR,
-                    .loc = loc,
-                    .as = {
-                        .operator = saved,
-                    },
-                };
-                arrput(lexer->tokens, token);
-                return true;
-            }
+        case '+': case '-': case '*': case '/': {
+            Location loc = lexer->source.loc;
+            char saved = lexer_peek(lexer);
+            lexer_next(lexer);
+            const Token token = {
+                .type = TT_OPERATOR,
+                .loc = loc,
+                .as = {
+                    .operator = saved,
+                },
+            };
+            arrput(lexer->tokens, token);
+            return true;
         }
-    } 
+        case ';': {
+            Location loc = lexer->source.loc;
+            lexer_next(lexer);
+            const Token token = {
+                .type = TT_SEMICOLON,
+                .loc = loc,
+            };
+            arrput(lexer->tokens, token);
+            return true;
+        }
+    }
 
     return false;
 }
@@ -82,9 +115,19 @@ void token_print(Token t) {
     switch (t.type) {
         case TT_NUMBER: {
             printf("%lu:%lu %lu\n", t.loc.col, t.loc.row, t.as.number);
+            break;
         }
         case TT_OPERATOR: {
             printf("%lu:%lu %c\n", t.loc.col, t.loc.row, t.as.operator);
+            break;
+        }
+        case TT_SEMICOLON: {
+            printf("%lu:%lu ;\n", t.loc.col, t.loc.row);
+            break;
+        }
+        case TT_IDENT: {
+            printf("%lu:%lu %s\n", t.loc.col, t.loc.row, t.as.ident);
+            break;
         }
         case TT_COUNT: {}
     }
