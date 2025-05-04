@@ -9,11 +9,29 @@
 #include "../extern/stb_ds.h"
 
 #include "lexer.h"
+#include "arena.h"
 
 // Returns a null terminaed string of the file in `name`
 // On any error (except malloc) prints error with perror and returns NULL
 char* read_file(const char* name);
 Token* lex_file(char* content);
+
+typedef enum {
+    ET_NUMBER,
+    ET_BINARY
+} ExprType;
+
+typedef struct Expr {
+    ExprType type;
+    union {
+        uint64_t number;
+        struct {
+            struct Expr* left;
+            char op;
+            struct Expr* right;
+        } binary;
+    } as;
+} Expr;
 
 int main() {
     char* file_content = read_file("test.nsl");
