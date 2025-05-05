@@ -166,7 +166,7 @@ Parser parse_file(Token* tokens, Arena* arena) {
             parser.statements = NULL;
             return parser;
         }
-        arrput(parser.statements, parser_statement(&parser));
+        arrput(parser.statements, s);
     }
     return parser;
 }

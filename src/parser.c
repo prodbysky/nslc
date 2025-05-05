@@ -78,6 +78,10 @@ Expr* parser_expr(Parser* parser, int min_prec) {
 }
 
 Statement parser_statement(Parser* parser) {
+    if (parser_is_finished(parser)) {
+        fprintf(stderr, "Unexpected EOF\n");
+        return (Statement) {.type = ST_ERROR};
+    }
     switch (parser_peek(parser).type) {
         case TT_IDENT: {
             if (strcmp("return", parser_peek(parser).as.ident) == 0) {
@@ -98,6 +102,8 @@ Statement parser_statement(Parser* parser) {
             break;
         }
         default: {
+            Token t = parser_peek(parser);
+            fprintf(stderr, "type: %u\n", t.type);
             fprintf(stderr, "Unexpected token type when trying to parse statement\n");
             return (Statement) {0};
         }
