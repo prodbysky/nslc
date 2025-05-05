@@ -25,6 +25,7 @@ typedef struct Expr {
 
 typedef enum {
     ST_RETURN,
+    ST_ERROR
 } StatementType;
 
 typedef struct {

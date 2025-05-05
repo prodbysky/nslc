@@ -21,52 +21,38 @@
 // Returns a null terminaed string of the file in `name`
 // On any error (except malloc) prints error with perror and returns NULL
 char* read_file(const char* name);
-Lexer lex_file(char* content, Arena* arena);
-Parser parse_file(Token* tokens, Arena* arena);
 
 const char* TokenTypeReadable[TT_COUNT] = {
     [TT_NUMBER] = "Number",
     [TT_OPERATOR] = "Operator",
 };
 
+typedef struct {
+    char* input_name;
+    char* output_name;
+} Args;
 
-void usage(const char* prog_name) {
-    fprintf(stderr, "Usage:\n");
-    fprintf(stderr, "    %s <input.nsl> [OPTIONS]\n", prog_name);
-    fprintf(stderr, "Options:\n");
-    fprintf(stderr, "    -o <output> : specifies the output executable name\n");
-}
+Args parse_from_argv(int argc, char** argv);
+Lexer lex_file(char* content, Arena* arena);
+Parser parse_file(Token* tokens, Arena* arena);
+bool write_and_compile_ir(Codegen* codegen, Statement* statements, char* out_name);
 
 int main(int argc, char** argv) {
-    char* output_name = "a.out";
-    char* input_name = NULL;
+    Args args = parse_from_argv(argc, argv);
+    if (args.input_name == NULL) return 1;
 
-    for (int i = 1; i < argc; i++) {
-        if (strcmp("-o", argv[i]) == 0) {
-            if (i + 1 >= argc) {
-                fprintf(stderr, "ERROR: Output name not specified\n");
-                usage(argv[0]);
-                return 1;
-            }
-            output_name = argv[i + 1];
-            i++;
-        } else {
-            input_name = argv[i];
-        }
-    }
-
-    if (input_name == NULL) {
-        fprintf(stderr, "ERROR: Input file name not specified\n");
-        usage(argv[0]);
-        return 1;
-    }
-
-    char* file_content = read_file(input_name);
+    char* file_content = read_file(args.input_name);
 
     Arena arena = arena_new(1024 * 10);
 
     Lexer lexer = lex_file(file_content, &arena);
     Parser parser = parse_file(lexer.tokens, &arena);
+    if (parser.statements == NULL) {
+        free(file_content);
+        arrfree(lexer.tokens);
+        arena_delete(&arena);
+        return 1;
+    } 
 
 
     QBEModule mod = qbe_module_new();
@@ -80,20 +66,7 @@ int main(int argc, char** argv) {
         .temp_count = 0, 
     };
 
-    generate_code(&codegen, parser.statements);
-
-    FILE* qbe_ir_file = fopen("main.ssa", "w");
-    qbe_module_write(&mod, qbe_ir_file);
-    fclose(qbe_ir_file);
-
-    Cmd cmd = {0};
-    cmd_append(&cmd, "qbe", "-o", "main.s", "main.ssa");
-    if (!cmd_run_sync_and_reset(&cmd)) return 1;
-    cmd_append(&cmd, "cc", "-o", output_name, "main.s");
-    if (!cmd_run_sync_and_reset(&cmd)) return 1;
-    cmd_append(&cmd, "rm", "main.s", "main.ssa");
-    if (!cmd_run_sync_and_reset(&cmd)) return 1;
-    free(cmd.items);
+    if (!write_and_compile_ir(&codegen, parser.statements, args.output_name)) return 1;
 
     free(file_content);
     arrfree(lexer.tokens);
@@ -102,6 +75,57 @@ int main(int argc, char** argv) {
     qbe_module_destroy(&mod);
 
 	return 0;
+}
+
+bool write_and_compile_ir(Codegen* codegen, Statement* statements, char* out_name) {
+    generate_code(codegen, statements);
+
+    FILE* qbe_ir_file = fopen("main.ssa", "w");
+    qbe_module_write(&codegen->mod, qbe_ir_file);
+    fclose(qbe_ir_file);
+
+    Cmd cmd = {0};
+    cmd_append(&cmd, "qbe", "-o", "main.s", "main.ssa");
+    if (!cmd_run_sync_and_reset(&cmd)) return false;
+    cmd_append(&cmd, "cc", "-o", out_name, "main.s");
+    if (!cmd_run_sync_and_reset(&cmd)) return false;
+    cmd_append(&cmd, "rm", "main.s", "main.ssa");
+    if (!cmd_run_sync_and_reset(&cmd)) return false;
+    free(cmd.items);
+    return true;
+}
+
+void usage(const char* prog_name) {
+    fprintf(stderr, "Usage:\n");
+    fprintf(stderr, "    %s <input.nsl> [OPTIONS]\n", prog_name);
+    fprintf(stderr, "Options:\n");
+    fprintf(stderr, "    -o <output> : specifies the output executable name\n");
+}
+
+
+Args parse_from_argv(int argc, char** argv) {
+    Args args = {0};
+    args.output_name = "a.out";
+    for (int i = 1; i < argc; i++) {
+        if (strcmp("-o", argv[i]) == 0) {
+            if (i + 1 >= argc) {
+                fprintf(stderr, "ERROR: Output name not specified\n");
+                usage(argv[0]);
+                return (Args){0};
+            }
+            args.output_name = argv[i + 1];
+            i++;
+        } else {
+            args.input_name = argv[i];
+        }
+    }
+
+    if (args.input_name == NULL) {
+        fprintf(stderr, "ERROR: Input file name not specified\n");
+        usage(argv[0]);
+        return (Args){0};
+    }
+    return args;
 }
 
 Lexer lex_file(char* content, Arena* arena) {
@@ -135,6 +159,13 @@ Parser parse_file(Token* tokens, Arena* arena) {
     };
 
     while (!parser_is_finished(&parser)) {
+        Statement s = parser_statement(&parser);
+        if (s.type == ST_ERROR) {
+            fprintf(stderr, "Failed to parse file due to invalid statement\n");
+            arrfree(parser.statements);
+            parser.statements = NULL;
+            return parser;
+        }
         arrput(parser.statements, parser_statement(&parser));
     }
     return parser;

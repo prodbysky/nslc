@@ -38,6 +38,7 @@ Expr* parser_primary(Parser* parser) {
         }
         default: {
             fprintf(stderr, "Unexpected token found when parsing primary expression\n");
+            token_print(t);
             return NULL;
         }
     }
@@ -54,6 +55,7 @@ Expr* parser_expr(Parser* parser, int min_prec) {
 
             parser_next(parser);
             Expr* right = parser_expr(parser, prec + 1);
+            if (right == NULL) return NULL;
             Expr* new_left = arena_alloc(parser->arena, sizeof(Expr));
 
             *new_left = (Expr) {
@@ -81,6 +83,10 @@ Statement parser_statement(Parser* parser) {
             if (strcmp("return", parser_peek(parser).as.ident) == 0) {
                 parser_next(parser);
                 Expr* value = parser_expr(parser, 0);
+                if (value == NULL) {
+                    fprintf(stderr, "Failed to parse return statement value\n");
+                    return (Statement) {.type = ST_ERROR};
+                }
                 parser_next(parser); // ';'
                 return (Statement) {
                     .type = ST_RETURN,

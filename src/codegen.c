@@ -23,6 +23,10 @@ void generate_code(Codegen* codegen, Statement* sts) {
                 });
                 break;
             }
+            case ST_ERROR: {
+                fprintf(stderr, "Found some invalid statement during parsing\n");
+                return;
+            } 
         }
     }
 }
