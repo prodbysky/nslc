@@ -46,6 +46,8 @@ int main(int argc, char** argv) {
     Arena arena = arena_new(1024 * 10);
 
     Lexer lexer = lex_file(file_content, &arena);
+    if (lexer.tokens == NULL) return 1;
+
     Parser parser = parse_file(lexer.tokens, &arena);
     if (parser.statements == NULL) {
         free(file_content);
@@ -159,14 +161,12 @@ Parser parse_file(Token* tokens, Arena* arena) {
     };
 
     while (!parser_is_finished(&parser)) {
-        Statement s = parser_statement(&parser);
-        if (s.type == ST_ERROR) {
+        if (!parser_statement(&parser)) {
             fprintf(stderr, "Failed to parse file due to invalid statement\n");
             arrfree(parser.statements);
             parser.statements = NULL;
             return parser;
         }
-        arrput(parser.statements, s);
     }
     return parser;
 }

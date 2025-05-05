@@ -42,9 +42,8 @@ static int isnewline(int c) {
 }
 
 bool lexer_parse_token(Lexer* lexer) {
-    if (lexer_peek(lexer) == '#') {
-        lexer_skip_while(lexer, isnewline);
-    }
+    if (lexer_peek(lexer) == '#') lexer_skip_while(lexer, isnewline);
+
     if (isdigit(lexer_peek(lexer))) {
         const char* begin = lexer->source.current;
         Location loc = lexer->source.loc;
@@ -52,7 +51,7 @@ bool lexer_parse_token(Lexer* lexer) {
 
         if (isalpha(*end)) {
             fprintf(stderr, "ERROR: ./%lu:%lu Unexpected letter near number literal\n", lexer->source.loc.col, lexer->source.loc.row);
-            return 1;
+            return false;
         }
 
         char* expected_end;

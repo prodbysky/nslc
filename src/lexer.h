@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include "arena.h"
 
+// Rust has been permanentely printed
+// into my brain stem
 typedef enum {
     TT_NUMBER,
     TT_OPERATOR,
@@ -12,7 +14,7 @@ typedef enum {
     TT_COUNT,
 } TokenType;
 
-
+// One indexed location
 typedef struct {
     ptrdiff_t row, col;
 } Location;

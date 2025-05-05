@@ -77,10 +77,10 @@ Expr* parser_expr(Parser* parser, int min_prec) {
     return left;
 }
 
-Statement parser_statement(Parser* parser) {
+bool parser_statement(Parser* parser) {
     if (parser_is_finished(parser)) {
         fprintf(stderr, "Unexpected EOF\n");
-        return (Statement) {.type = ST_ERROR};
+        return false;
     }
     switch (parser_peek(parser).type) {
         case TT_IDENT: {
@@ -89,15 +89,17 @@ Statement parser_statement(Parser* parser) {
                 Expr* value = parser_expr(parser, 0);
                 if (value == NULL) {
                     fprintf(stderr, "Failed to parse return statement value\n");
-                    return (Statement) {.type = ST_ERROR};
+                    return false;
                 }
                 parser_next(parser); // ';'
-                return (Statement) {
+                Statement st =   {
                     .type = ST_RETURN,
                     .as = {
                         .ret = value
                     },
                 };
+                arrput(parser->statements, st);
+                return true;
             }
             break;
         }
@@ -105,8 +107,8 @@ Statement parser_statement(Parser* parser) {
             Token t = parser_peek(parser);
             fprintf(stderr, "type: %u\n", t.type);
             fprintf(stderr, "Unexpected token type when trying to parse statement\n");
-            return (Statement) {0};
+            return false;
         }
     }
-    assert(false);
+    return false;
 }
