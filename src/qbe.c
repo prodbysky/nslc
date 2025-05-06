@@ -15,8 +15,6 @@ void qbe_module_destroy(QBEModule* module) {
         QBEFunction* func = &module->functions[f];
         for (ptrdiff_t b = 0; b < arrlen(func->blocks); b++) {
             QBEBlock* block = &func->blocks[b];
-
-
             for (ptrdiff_t s = 0; s < arrlen(block->statements); s++) {
                 QBEStatement* st = &block->statements[s];
                 switch (st->type) {
@@ -154,6 +152,28 @@ void qbe_instruction_write(const QBEInstruction* instruction, FILE* file) {
         case QIT_DIV: {
             fprintf(file, "div ");
             qbe_write_left_right(&instruction->div.left, &instruction->div.right, file);
+            fprintf(file, "\n");
+            break;
+        }
+        case QIT_ALLOC4: {
+            fprintf(file, "alloc4 ");
+            fprintf(file, "%lu", instruction->alloc4.size);
+            fprintf(file, "\n");
+            break;
+        }
+        case QIT_STOREW: {
+            fprintf(file, "storew ");
+            switch (instruction->storew.value.kind) {
+                case QVK_CONST: fprintf(file, "%lu, ", instruction->storew.value.const_i); break;
+                case QVK_TEMP: fprintf(file, "%%%s, ", instruction->storew.value.name); break;
+            }
+            fprintf(file, "%%%s", instruction->storew.name);
+            fprintf(file, "\n");
+            break;
+        }
+        case QIT_LOADW: {
+            fprintf(file, "loadw ");
+            fprintf(file, "%%%s", instruction->loadw.name);
             fprintf(file, "\n");
             break;
         }
