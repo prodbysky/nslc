@@ -66,6 +66,7 @@ int main(int argc, char** argv) {
         .main = main, 
         .entry = entry, 
         .temp_count = 0, 
+        .variables = NULL,
     };
 
     if (!write_and_compile_ir(&codegen, parser.statements, args.output_name)) return 1;

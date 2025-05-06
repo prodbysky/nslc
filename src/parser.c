@@ -43,6 +43,16 @@ Expr* parser_primary(Parser* parser) {
             parser_next(parser);
             return expr;
         }
+        case TT_IDENT: {
+            Expr* expr = arena_alloc(parser->arena, sizeof(Expr));
+            expr->type = ET_VARIABLE;
+            expr->as.variable = t.as.ident;
+            if (expr == NULL) {
+                fprintf(stderr, "Failed to parse variable name expression value\n");
+                return false;
+            }
+            return expr;
+        }
         case TT_COUNT: {
             assert(false && "Unreachable :)");
         }
@@ -108,6 +118,29 @@ bool parser_statement(Parser* parser) {
                         .ret = value
                     },
                 };
+                arrput(parser->statements, st);
+                return true;
+            }
+            if (strcmp("let", parser_peek(parser).as.ident) == 0 || strcmp("const", parser_peek(parser).as.ident) == 0) {
+                parser_next(parser);
+                Token name = parser_next(parser);
+                parser_next(parser); // ':' TODO: Check for the correct tokens when skipping them
+                Token type = parser_next(parser);
+                parser_next(parser); // '=' TODO: Check for the correct tokens when skipping them
+                Expr* expr = parser_expr(parser, 0);
+                if (expr == NULL) {
+                    fprintf(stderr, "Failed to parse variable definition value expression\n");
+                    return false;
+                }
+                parser_next(parser); // ';' TODO: Check for the correct tokens when skipping them
+                Statement st = {
+                    .type = ST_VARIABLE_DEFINE,
+                    .as.var_def = {
+                        .name = name.as.ident,
+                        .type = type.as.ident,
+                        .value = expr
+                    }
+                };  
                 arrput(parser->statements, st);
                 return true;
             }

@@ -23,6 +23,33 @@ void generate_code(Codegen* codegen, Statement* sts) {
                 });
                 break;
             }
+            case ST_VARIABLE_DEFINE: {
+                char* value_place = fresh_temp(codegen);
+                QBEValue result = {.kind = QVK_TEMP, .name = strndup(value_place, 32) };
+
+                qbe_block_assign_ins(
+                    codegen->entry, 
+                    (QBEInstruction) {
+                        .type = QIT_ALLOC4,
+                        .alloc4.size = 4
+                    }, 
+                    QVT_WORD, 
+                    result
+                );
+                QBEValue value = generate_expr(codegen, st->as.var_def.value);
+                qbe_block_push_ins(
+                    codegen->entry, 
+                    (QBEInstruction) {
+                        .type = QIT_STOREW,
+                        .storew = {
+                            .value = value,
+                            .name = value_place
+                        }
+                    }
+                );
+                hmput(codegen->variables, value_place, st->as.var_def.name);
+                break;
+            }
             case ST_ERROR: {
                 fprintf(stderr, "Found some invalid statement during parsing\n");
                 return;
@@ -38,6 +65,20 @@ QBEValue generate_expr(Codegen* codegen, const Expr* expr) {
                 .kind = QVK_CONST,
                 .const_i = expr->as.number
             };
+        }
+        case ET_VARIABLE: {
+            char* place = fresh_temp(codegen);
+            QBEValue result = {.kind = QVK_TEMP, .name = strndup(place, 32) };
+            qbe_block_assign_ins(
+                codegen->entry, 
+                (QBEInstruction) {
+                    .type = QIT_LOADW,
+                    .loadw.name = hmget(codegen->variables, expr->as.variable)
+                }, 
+                QVT_WORD, 
+                result
+            );
+            return result;
         }
         case ET_BINARY: {
             QBEValue left = generate_expr(codegen, expr->as.binary.left);

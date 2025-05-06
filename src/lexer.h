@@ -11,6 +11,8 @@ typedef enum {
     TT_OPERATOR,
     TT_IDENT,
     TT_SEMICOLON,
+    TT_COLON,
+    TT_EQUAL,
     TT_OPENPAREN,
     TT_CLOSEPAREN,
     TT_COUNT,

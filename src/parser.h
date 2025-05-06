@@ -8,6 +8,7 @@
 
 typedef enum {
     ET_NUMBER,
+    ET_VARIABLE,
     ET_BINARY
 } ExprType;
 
@@ -20,11 +21,13 @@ typedef struct Expr {
             char op;
             struct Expr* right;
         } binary;
+        char* variable;
     } as;
 } Expr;
 
 typedef enum {
     ST_RETURN,
+    ST_VARIABLE_DEFINE,
     ST_ERROR
 } StatementType;
 
@@ -32,6 +35,11 @@ typedef struct {
     StatementType type;
     union {
         Expr* ret;
+        struct {
+            char* name;
+            char* type;
+            Expr* value;
+        } var_def;
     } as;
 } Statement;
 

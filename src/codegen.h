@@ -6,11 +6,20 @@
 #include "parser.h"
 
 typedef struct {
+    char* key; // real name
+    char* value; // ptr name
+    // TODO: Types
+} Variable;
+
+typedef struct {
     QBEModule mod;
     QBEFunction* main;
     QBEBlock* entry;
+    Variable* variables;
     size_t temp_count;
 } Codegen;
+
+
 
 void generate_code(Codegen* codegen, Statement* sts);
 QBEValue generate_expr(Codegen* codegen, const Expr* expr);

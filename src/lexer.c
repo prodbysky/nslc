@@ -112,6 +112,26 @@ bool lexer_parse_token(Lexer* lexer) {
             arrput(lexer->tokens, token);
             return true;
         }
+        case ':': {
+            Location loc = lexer->source.loc;
+            lexer_next(lexer);
+            const Token token = {
+                .type = TT_COLON,
+                .loc = loc,
+            };
+            arrput(lexer->tokens, token);
+            return true;
+        }
+        case '=': {
+            Location loc = lexer->source.loc;
+            lexer_next(lexer);
+            const Token token = {
+                .type = TT_EQUAL,
+                .loc = loc,
+            };
+            arrput(lexer->tokens, token);
+            return true;
+        }
         case '(': {
             Location loc = lexer->source.loc;
             lexer_next(lexer);
@@ -149,6 +169,14 @@ void token_print(Token t) {
         }
         case TT_SEMICOLON: {
             printf("%lu:%lu ;\n", t.loc.col, t.loc.row);
+            break;
+        }
+        case TT_COLON: {
+            printf("%lu:%lu :\n", t.loc.col, t.loc.row);
+            break;
+        }
+        case TT_EQUAL: {
+            printf("%lu:%lu =\n", t.loc.col, t.loc.row);
             break;
         }
         case TT_OPENPAREN: {
