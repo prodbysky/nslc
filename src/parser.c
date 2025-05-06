@@ -33,6 +33,16 @@ Expr* parser_primary(Parser* parser) {
             parser_next(parser);
             return expr;
         }
+        case TT_OPENPAREN: {
+            parser_next(parser);
+            Expr* expr = parser_expr(parser, 0);
+            if (expr == NULL) {
+                fprintf(stderr, "Failed to parse parenthesized expression value\n");
+                return false;
+            }
+            parser_next(parser);
+            return expr;
+        }
         case TT_COUNT: {
             assert(false && "Unreachable :)");
         }
