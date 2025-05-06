@@ -51,6 +51,7 @@ Expr* parser_primary(Parser* parser) {
                 fprintf(stderr, "Failed to parse variable name expression value\n");
                 return false;
             }
+            parser_next(parser);
             return expr;
         }
         case TT_COUNT: {
@@ -111,8 +112,14 @@ bool parser_statement(Parser* parser) {
                     fprintf(stderr, "Failed to parse return statement value\n");
                     return false;
                 }
-                parser_next(parser); // ';'
-                Statement st =   {
+                
+                if (parser_is_finished(parser) || parser_peek(parser).type != TT_SEMICOLON) {
+                    fprintf(stderr, "Expected semicolon after return statement\n");
+                    return false;
+                }
+                parser_next(parser);
+                
+                Statement st = {
                     .type = ST_RETURN,
                     .as = {
                         .ret = value
@@ -122,17 +129,44 @@ bool parser_statement(Parser* parser) {
                 return true;
             }
             if (strcmp("let", parser_peek(parser).as.ident) == 0 || strcmp("const", parser_peek(parser).as.ident) == 0) {
-                parser_next(parser);
+                parser_next(parser); 
+                
+                if (parser_is_finished(parser) || parser_peek(parser).type != TT_IDENT) {
+                    fprintf(stderr, "Expected identifier after let/const\n");
+                    return false;
+                }
                 Token name = parser_next(parser);
-                parser_next(parser); // ':' TODO: Check for the correct tokens when skipping them
+                
+                if (parser_is_finished(parser) || parser_peek(parser).type != TT_COLON) {
+                    fprintf(stderr, "Expected colon after variable name\n");
+                    return false;
+                }
+                parser_next(parser); 
+                
+                if (parser_is_finished(parser) || parser_peek(parser).type != TT_IDENT) {
+                    fprintf(stderr, "Expected type after colon\n");
+                    return false;
+                }
                 Token type = parser_next(parser);
-                parser_next(parser); // '=' TODO: Check for the correct tokens when skipping them
+                
+                if (parser_is_finished(parser) || parser_peek(parser).type != TT_EQUAL) {
+                    fprintf(stderr, "Expected equals sign after type\n");
+                    return false;
+                }
+                parser_next(parser); 
+                
                 Expr* expr = parser_expr(parser, 0);
                 if (expr == NULL) {
                     fprintf(stderr, "Failed to parse variable definition value expression\n");
                     return false;
                 }
-                parser_next(parser); // ';' TODO: Check for the correct tokens when skipping them
+                
+                if (parser_is_finished(parser) || parser_peek(parser).type != TT_SEMICOLON) {
+                    fprintf(stderr, "Expected semicolon after variable definition\n");
+                    return false;
+                }
+                parser_next(parser); 
+                
                 Statement st = {
                     .type = ST_VARIABLE_DEFINE,
                     .as.var_def = {

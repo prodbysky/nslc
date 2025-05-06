@@ -24,9 +24,10 @@ void generate_code(Codegen* codegen, Statement* sts) {
                 break;
             }
             case ST_VARIABLE_DEFINE: {
-                char* value_place = fresh_temp(codegen);
-                QBEValue result = {.kind = QVK_TEMP, .name = strndup(value_place, 32) };
-
+                // First allocate space for the variable
+                char* var_temp = fresh_temp(codegen);
+                QBEValue alloc_result = {.kind = QVK_TEMP, .name = strndup(var_temp, 32) };
+                
                 qbe_block_assign_ins(
                     codegen->entry, 
                     (QBEInstruction) {
@@ -34,20 +35,26 @@ void generate_code(Codegen* codegen, Statement* sts) {
                         .alloc4.size = 4
                     }, 
                     QVT_WORD, 
-                    result
+                    alloc_result
                 );
+                
+                // Store the variable name mapping
+                hmput(codegen->variables, st->as.var_def.name, strndup(var_temp, 32));
+                
+                // Generate the expression value
                 QBEValue value = generate_expr(codegen, st->as.var_def.value);
+                
+                // Store the value into the allocated memory
                 qbe_block_push_ins(
                     codegen->entry, 
                     (QBEInstruction) {
                         .type = QIT_STOREW,
                         .storew = {
                             .value = value,
-                            .name = value_place
+                            .name = var_temp
                         }
                     }
                 );
-                hmput(codegen->variables, value_place, st->as.var_def.name);
                 break;
             }
             case ST_ERROR: {
@@ -67,13 +74,17 @@ QBEValue generate_expr(Codegen* codegen, const Expr* expr) {
             };
         }
         case ET_VARIABLE: {
+            char* var_loc = hmget(codegen->variables, expr->as.variable);
+            
+            // Create a temporary for the loaded value
             char* place = fresh_temp(codegen);
             QBEValue result = {.kind = QVK_TEMP, .name = strndup(place, 32) };
+            
             qbe_block_assign_ins(
                 codegen->entry, 
                 (QBEInstruction) {
                     .type = QIT_LOADW,
-                    .loadw.name = hmget(codegen->variables, expr->as.variable)
+                    .loadw.name = var_loc
                 }, 
                 QVT_WORD, 
                 result
