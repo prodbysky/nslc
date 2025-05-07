@@ -74,6 +74,12 @@ int main(int argc, char** argv) {
     free(file_content);
     arrfree(lexer.tokens);
     arrfree(parser.statements);
+    for (ptrdiff_t i = 0; i < arrlen(codegen.variables); i++) {
+        free(codegen.variables[i].name);
+        free(codegen.variables[i].ptr_name);
+    }
+    arrfree(codegen.variables);
+
     arena_delete(&arena);
     qbe_module_destroy(&mod);
 

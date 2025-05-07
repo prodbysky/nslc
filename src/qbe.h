@@ -11,13 +11,14 @@ typedef enum {
     QIT_SUB,
     QIT_MUL,
     QIT_DIV,
-    QIT_ALLOC4,
+    QIT_ALLOC8,
     QIT_STOREW,
     QIT_LOADW,
 } QBEInstructionType;
 
 typedef enum {
-    QVT_WORD
+    QVT_WORD,
+    QVT_LONG,
 } QBEValueType;
 
 typedef enum {
@@ -43,7 +44,7 @@ typedef struct {
         } add, sub, mul, div;
         struct {
             size_t size;
-        } alloc4;
+        } alloc8;
         struct {
             QBEValue value;
             char* name;

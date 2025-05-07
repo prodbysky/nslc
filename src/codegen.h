@@ -1,4 +1,4 @@
-#ifndef CODEGEN_H
+#ifndef CODEGEN_H 
 #define CODEGEN_H
 
 #include "qbe.h"
@@ -6,9 +6,8 @@
 #include "parser.h"
 
 typedef struct {
-    char* key; // real name
-    char* value; // ptr name
-    // TODO: Types
+    char* name;
+    char* ptr_name;
 } Variable;
 
 typedef struct {

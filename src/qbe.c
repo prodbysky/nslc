@@ -102,6 +102,10 @@ void qbe_statement_write(const QBEStatement* statement, FILE* file) {
                 fprintf(file, "w ");
                 break;
             }
+            case QVT_LONG: {
+                fprintf(file, "l ");
+                break;
+            }
         }
         qbe_instruction_write(&statement->assign.instruction, file);
     } else {
@@ -155,9 +159,9 @@ void qbe_instruction_write(const QBEInstruction* instruction, FILE* file) {
             fprintf(file, "\n");
             break;
         }
-        case QIT_ALLOC4: {
-            fprintf(file, "alloc4 ");
-            fprintf(file, "%lu", instruction->alloc4.size);
+        case QIT_ALLOC8: {
+            fprintf(file, "alloc8 ");
+            fprintf(file, "%lu", instruction->alloc8.size);
             fprintf(file, "\n");
             break;
         }

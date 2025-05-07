@@ -30,18 +30,18 @@ void generate_code(Codegen* codegen, Statement* sts) {
                 qbe_block_assign_ins(
                     codegen->entry, 
                     (QBEInstruction) {
-                        .type = QIT_ALLOC4,
-                        .alloc4.size = 4
+                        .type = QIT_ALLOC8,
+                        .alloc8.size = 1
                     }, 
-                    QVT_WORD, 
+                    QVT_LONG, 
                     alloc_result
                 );
                 
-                hmput(codegen->variables, st->as.var_def.name, var_temp);
-
-                for (ptrdiff_t a = 0; a < hmlen(codegen->variables); a++) {
-                    printf("key: %s, value: %s\n", codegen->variables[a].key, codegen->variables[a].value);
-                }
+                Variable v = {
+                    .name = strdup(st->as.var_def.name),
+                    .ptr_name = strdup(var_temp),
+                };
+                arrput(codegen->variables, v);
                 
                 QBEValue value = generate_expr(codegen, st->as.var_def.value);
                 
@@ -74,10 +74,13 @@ QBEValue generate_expr(Codegen* codegen, const Expr* expr) {
             };
         }
         case ET_VARIABLE: {
-            char* var_loc = hmget(codegen->variables, expr->as.variable);
-            printf("%s\n", expr->as.variable);
-
-            // Create a temporary for the loaded value
+            Variable v = {0};
+            for (ptrdiff_t i = 0; i < arrlen(codegen->variables); i++) {
+                if (strcmp(codegen->variables[i].name, expr->as.variable) == 0) {
+                    v = codegen->variables[i];
+                    break;
+                }
+            }
             char* place = fresh_temp(codegen);
             QBEValue result = {.kind = QVK_TEMP, .name = place };
             
@@ -85,7 +88,7 @@ QBEValue generate_expr(Codegen* codegen, const Expr* expr) {
                 codegen->entry, 
                 (QBEInstruction) {
                     .type = QIT_LOADW,
-                    .loadw.name = var_loc
+                    .loadw.name = v.ptr_name
                 }, 
                 QVT_WORD, 
                 result
