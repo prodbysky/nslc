@@ -26,7 +26,9 @@ typedef struct Expr {
 } Expr;
 
 typedef enum {
+    // return <expr>;
     ST_RETURN,
+    // let/const <name>: <type> = <expr>;
     ST_VARIABLE_DEFINE,
     ST_ERROR
 } StatementType;

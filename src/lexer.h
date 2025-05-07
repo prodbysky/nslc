@@ -41,6 +41,8 @@ typedef struct {
         Location loc;
     } source;
     Token* tokens;
+    // This arena should live for the entirety of the int main() lifetime
+    // Rust begin embroidered into my brain stem AGAIN
     Arena* arena;
 } Lexer;
 
