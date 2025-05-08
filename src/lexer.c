@@ -13,10 +13,10 @@ bool lexer_is_finished(const Lexer* lexer) {
 
 char lexer_next(Lexer* lexer) {
     if (*lexer->source.current == '\n') {
-        lexer->source.loc.col++;
-        lexer->source.loc.row = 1;
-    } else {
         lexer->source.loc.row++;
+        lexer->source.loc.col = 1;
+    } else {
+        lexer->source.loc.col++;
     }
     return *(lexer->source.current++);
 }
@@ -50,7 +50,10 @@ bool lexer_parse_token(Lexer* lexer) {
         const char* end = lexer_skip_while(lexer, isdigit);
 
         if (isalpha(*end)) {
-            fprintf(stderr, "ERROR: ./%lu:%lu Unexpected letter near number literal\n", lexer->source.loc.col, lexer->source.loc.row);
+            lexer->error = (LexerError) {
+                .message = "Unexpected letter near number literal",
+                .loc = lexer->source.loc
+            };
             return false;
         }
 
@@ -154,43 +157,80 @@ bool lexer_parse_token(Lexer* lexer) {
         }
     }
 
+    lexer->error = (LexerError) {
+        .message = "Unexpected character found",
+        .loc = lexer->source.loc
+    };
     return false;
 }
+
+void lexer_error_display(LexerError error, char* file_content, char* input_name) {
+    long offset = get_offset_in_buffer(file_content, error.loc);
+    char* line_start = file_content + offset - error.loc.col + 1;
+    char* line_end = file_content + offset;
+    while (*line_end && *line_end != '\n') line_end++;
+
+    fprintf(stderr, "[lexer::error] %s:%lu:%lu: %s\n",
+            input_name, error.loc.row, error.loc.col, error.message);
+
+    fwrite(line_start, 1, line_end - line_start, stderr);
+    fputc('\n', stderr);
+    ptrdiff_t line_offset = error.loc.col - 1;
+    fprintf(stderr, "%*s^\n", (int)line_offset, " ");
+}
+
 
 void token_print(Token t) {
     switch (t.type) {
         case TT_NUMBER: {
-            printf("%lu:%lu %lu\n", t.loc.col, t.loc.row, t.as.number);
+            printf("%lu:%lu %lu\n", t.loc.row, t.loc.col, t.as.number);
             break;
         }
         case TT_OPERATOR: {
-            printf("%lu:%lu %c\n", t.loc.col, t.loc.row, t.as.operator);
+            printf("%lu:%lu %c\n", t.loc.row, t.loc.col, t.as.operator);
             break;
         }
         case TT_SEMICOLON: {
-            printf("%lu:%lu ;\n", t.loc.col, t.loc.row);
+            printf("%lu:%lu ;\n", t.loc.row, t.loc.col);
             break;
         }
         case TT_COLON: {
-            printf("%lu:%lu :\n", t.loc.col, t.loc.row);
+            printf("%lu:%lu :\n", t.loc.row, t.loc.col);
             break;
         }
         case TT_EQUAL: {
-            printf("%lu:%lu =\n", t.loc.col, t.loc.row);
+            printf("%lu:%lu =\n", t.loc.row, t.loc.col);
             break;
         }
         case TT_OPENPAREN: {
-            printf("%lu:%lu (\n", t.loc.col, t.loc.row);
+            printf("%lu:%lu (\n", t.loc.row, t.loc.col);
             break;
         }
         case TT_CLOSEPAREN: {
-            printf("%lu:%lu )\n", t.loc.col, t.loc.row);
+            printf("%lu:%lu )\n", t.loc.row, t.loc.col);
             break;
         }
         case TT_IDENT: {
-            printf("%lu:%lu %s\n", t.loc.col, t.loc.row, t.as.ident);
+            printf("%lu:%lu %s\n", t.loc.row, t.loc.col, t.as.ident);
             break;
         }
         case TT_COUNT: {}
     }
+}
+
+long get_offset_in_buffer(const char *buffer, Location loc) {
+    int current_row = 1;
+    long offset = 0;
+
+    while (*buffer && current_row < loc.row) {
+        if (*buffer == '\n') current_row++;
+        buffer++;
+        offset++;
+    }
+
+    if (current_row != loc.row) {
+        return -1;
+    }
+
+    return offset + (loc.col - 1);
 }

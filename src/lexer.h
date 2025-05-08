@@ -20,7 +20,7 @@ typedef enum {
 
 // One indexed location
 typedef struct {
-    ptrdiff_t row, col;
+    ptrdiff_t col, row; // y:x
 } Location;
 
 typedef struct {
@@ -33,6 +33,10 @@ typedef struct {
     } as;
 } Token;
 
+typedef struct {
+    const char* message;
+    Location loc;
+} LexerError;
 
 typedef struct {
     struct {
@@ -44,6 +48,7 @@ typedef struct {
     // This arena should live for the entirety of the int main() lifetime
     // Rust begin embroidered into my brain stem AGAIN
     Arena* arena;
+    LexerError error;
 } Lexer;
 
 
@@ -56,5 +61,7 @@ const char* lexer_skip_ws(Lexer* lexer);
 
 bool lexer_parse_token(Lexer* lexer);
 void token_print(Token t);
+void lexer_error_display(LexerError error, char* file_content, char* input_name);
+long get_offset_in_buffer(const char *buffer, Location loc);
 
 #endif

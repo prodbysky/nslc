@@ -33,7 +33,7 @@ typedef struct {
 } Args;
 
 Args parse_from_argv(int argc, char** argv);
-Lexer lex_file(char* content, Arena* arena);
+Lexer lex_file(char* content, char* content_file_name, Arena* arena);
 Parser parse_file(Token* tokens, Arena* arena);
 bool write_and_compile_ir(Codegen* codegen, Statement* statements, char* out_name);
 
@@ -42,10 +42,9 @@ int main(int argc, char** argv) {
     if (args.input_name == NULL) return 1;
 
     char* file_content = read_file(args.input_name);
-
     Arena arena = arena_new(1024 * 10);
 
-    Lexer lexer = lex_file(file_content, &arena);
+    Lexer lexer = lex_file(file_content, args.input_name, &arena);
     if (lexer.tokens == NULL) return 1;
 
     Parser parser = parse_file(lexer.tokens, &arena);
@@ -137,7 +136,7 @@ Args parse_from_argv(int argc, char** argv) {
     return args;
 }
 
-Lexer lex_file(char* content, Arena* arena) {
+Lexer lex_file(char* content, char* content_file_name, Arena* arena) {
     Lexer lexer = {
         .source = {
             .first = content,
@@ -152,6 +151,7 @@ Lexer lex_file(char* content, Arena* arena) {
         lexer_skip_ws(&lexer);
         if (lexer_is_finished(&lexer)) break;
         if (!lexer_parse_token(&lexer)) {
+            lexer_error_display(lexer.error, content, content_file_name);
             arrfree(lexer.tokens);
             return (Lexer) {};
         }
