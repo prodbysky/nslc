@@ -26,7 +26,7 @@ int parser_current_token_precedence(const Parser* parser) {
 
 bool parser_expect(Parser* parser, TokenType t, char* err_msg) {
     if (parser_is_finished(parser) || parser_peek(parser).type != t) {
-        fprintf(stderr, "%s\n", err_msg);
+        fprintf(stderr, "%s:%lu:%lu: %s\n", parser->token_origin, parser_peek(parser).loc.row, parser_peek(parser).loc.col, err_msg);
         return false;
     }
     return true;

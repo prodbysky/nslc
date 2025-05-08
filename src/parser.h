@@ -46,10 +46,17 @@ typedef struct {
 } Statement;
 
 typedef struct {
+    const char* message;
+    Location loc;
+} ParserError;
+
+typedef struct {
+    char* token_origin;
     Token* tokens;
     ptrdiff_t pos;
     Statement* statements;
     Arena* arena;
+    ParserError error;
 } Parser;
 
 bool parser_is_finished(Parser* parser); 
@@ -59,5 +66,6 @@ Expr* parser_primary(Parser* parser);
 Expr* parser_expr(Parser* parser, int min_prec);
 bool parser_statement(Parser* parser);
 int parser_current_token_precedence(const Parser* parser);
+void parser_error_display(ParserError error, char* file_content, char* input_name);
 
 #endif
