@@ -103,9 +103,10 @@ bool parser_statement(Parser* parser) {
         fprintf(stderr, "Unexpected EOF\n");
         return false;
     }
-    switch (parser_peek(parser).type) {
-        case TT_IDENT: {
-            if (strcmp("return", parser_peek(parser).as.ident) == 0) {
+    Token t = parser_peek(parser);
+    switch (t.type) {
+        case TT_KEYWORD: {
+            if (t.as.keyword == TK_RETURN) {
                 parser_next(parser);
                 Expr* value = parser_expr(parser, 0);
                 if (value == NULL) {
@@ -128,11 +129,10 @@ bool parser_statement(Parser* parser) {
                 arrput(parser->statements, st);
                 return true;
             }
-            if (strcmp("let", parser_peek(parser).as.ident) == 0 || strcmp("const", parser_peek(parser).as.ident) == 0) {
+            if (t.as.keyword == TK_LET) {
                 parser_next(parser); 
-                
                 if (parser_is_finished(parser) || parser_peek(parser).type != TT_IDENT) {
-                    fprintf(stderr, "Expected identifier after let/const\n");
+                    fprintf(stderr, "Expected identifier after let\n");
                     return false;
                 }
                 Token name = parser_next(parser);

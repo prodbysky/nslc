@@ -79,13 +79,23 @@ bool lexer_parse_token(Lexer* lexer) {
         strncpy(str, begin,
                      len);
         str[len] = 0;
-        const Token token = {
+        Token token = {
             .type = TT_IDENT,
             .loc = loc,
             .as = {
                 .ident = str
             },
         };
+        if (strcmp(str, "return") == 0) {
+            token.type = TT_KEYWORD;
+            token.as.ident = NULL;
+            token.as.keyword = TK_RETURN;
+        }
+        if (strcmp(str, "let") == 0) {
+            token.type = TT_KEYWORD;
+            token.as.ident = NULL;
+            token.as.keyword = TK_LET;
+        }
         arrput(lexer->tokens, token);
         return true;
     }
@@ -212,6 +222,15 @@ void token_print(Token t) {
         }
         case TT_IDENT: {
             printf("%lu:%lu %s\n", t.loc.row, t.loc.col, t.as.ident);
+            break;
+        }
+        case TT_KEYWORD: {
+            const char* keyword_display;
+            switch (t.as.keyword) {
+                case TK_RETURN: keyword_display = "return"; break;
+                case TK_LET: keyword_display = "let"; break;
+            }
+            printf("%lu:%lu %s\n", t.loc.row, t.loc.col, keyword_display);
             break;
         }
         case TT_COUNT: {}

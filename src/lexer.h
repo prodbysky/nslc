@@ -10,6 +10,7 @@ typedef enum {
     TT_NUMBER,
     TT_OPERATOR,
     TT_IDENT,
+    TT_KEYWORD,
     TT_SEMICOLON,
     TT_COLON,
     TT_EQUAL,
@@ -17,6 +18,11 @@ typedef enum {
     TT_CLOSEPAREN,
     TT_COUNT,
 } TokenType;
+
+typedef enum {
+    TK_RETURN,
+    TK_LET,
+} TokenKeyword;
 
 // One indexed location
 typedef struct {
@@ -30,6 +36,7 @@ typedef struct {
         uint64_t number;
         char operator;
         char* ident;
+        TokenKeyword keyword;
     } as;
 } Token;
 
