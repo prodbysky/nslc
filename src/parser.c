@@ -15,12 +15,21 @@ Token parser_peek(const Parser* parser) {
 Token parser_next(Parser* parser) {
     return parser->tokens[parser->pos++];
 }
+
 int parser_current_token_precedence(const Parser* parser) {
     switch (parser_peek(parser).as.operator) {
         case '+': case '-': return 1;
         case '*': case '/': return 2;
     }
     return -1;
+}
+
+bool parser_expect(Parser* parser, TokenType t, char* err_msg) {
+    if (parser_is_finished(parser) || parser_peek(parser).type != t) {
+        fprintf(stderr, "%s\n", err_msg);
+        return false;
+    }
+    return true;
 }
 
 Expr* parser_primary(Parser* parser) {
@@ -114,10 +123,7 @@ bool parser_statement(Parser* parser) {
                     return false;
                 }
                 
-                if (parser_is_finished(parser) || parser_peek(parser).type != TT_SEMICOLON) {
-                    fprintf(stderr, "Expected semicolon after return statement\n");
-                    return false;
-                }
+                if (!parser_expect(parser, TT_SEMICOLON, "Expected semicolon after return statement")) return false;
                 parser_next(parser);
                 
                 Statement st = {
@@ -131,29 +137,17 @@ bool parser_statement(Parser* parser) {
             }
             if (t.as.keyword == TK_LET) {
                 parser_next(parser); 
-                if (parser_is_finished(parser) || parser_peek(parser).type != TT_IDENT) {
-                    fprintf(stderr, "Expected identifier after let\n");
-                    return false;
-                }
+                if (!parser_expect(parser, TT_IDENT, "Expected identifier after let")) return false;
                 Token name = parser_next(parser);
                 
-                if (parser_is_finished(parser) || parser_peek(parser).type != TT_COLON) {
-                    fprintf(stderr, "Expected colon after variable name\n");
-                    return false;
-                }
-                parser_next(parser); 
+                if (!parser_expect(parser, TT_COLON, "Expected colon after variable name")) return false;
+                parser_next(parser);
                 
-                if (parser_is_finished(parser) || parser_peek(parser).type != TT_IDENT) {
-                    fprintf(stderr, "Expected type after colon\n");
-                    return false;
-                }
+                if (!parser_expect(parser, TT_IDENT, "Expected type after colon")) return false;
                 Token type = parser_next(parser);
                 
-                if (parser_is_finished(parser) || parser_peek(parser).type != TT_EQUAL) {
-                    fprintf(stderr, "Expected equals sign after type\n");
-                    return false;
-                }
-                parser_next(parser); 
+                if (!parser_expect(parser, TT_EQUAL, "Expected equals sign after type")) return false;
+                parser_next(parser);
                 
                 Expr* expr = parser_expr(parser, 0);
                 if (expr == NULL) {
@@ -161,10 +155,7 @@ bool parser_statement(Parser* parser) {
                     return false;
                 }
                 
-                if (parser_is_finished(parser) || parser_peek(parser).type != TT_SEMICOLON) {
-                    fprintf(stderr, "Expected semicolon after variable definition\n");
-                    return false;
-                }
+                if (!parser_expect(parser, TT_SEMICOLON, "Expected semicolon after variable definition")) return false;
                 parser_next(parser); 
                 
                 Statement st = {
