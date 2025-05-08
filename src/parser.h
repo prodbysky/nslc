@@ -65,6 +65,8 @@ Token parser_next(Parser* parser);
 Expr* parser_primary(Parser* parser);
 Expr* parser_expr(Parser* parser, int min_prec);
 bool parser_statement(Parser* parser);
+bool parser_let_statement(Parser* parser);
+bool parser_return_statement(Parser* parser);
 int parser_current_token_precedence(const Parser* parser);
 void parser_error_display(ParserError error, char* file_content, char* input_name);
 

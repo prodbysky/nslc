@@ -115,60 +115,8 @@ bool parser_statement(Parser* parser) {
     Token t = parser_peek(parser);
     switch (t.type) {
         case TT_KEYWORD: {
-            if (t.as.keyword == TK_RETURN) {
-                parser_next(parser);
-                Expr* value = parser_expr(parser, 0);
-                if (value == NULL) {
-                    fprintf(stderr, "Failed to parse return statement value\n");
-                    return false;
-                }
-                
-                if (!parser_expect(parser, TT_SEMICOLON, "Expected semicolon after return statement")) return false;
-                parser_next(parser);
-                
-                Statement st = {
-                    .type = ST_RETURN,
-                    .as = {
-                        .ret = value
-                    },
-                };
-                arrput(parser->statements, st);
-                return true;
-            }
-            if (t.as.keyword == TK_LET) {
-                parser_next(parser); 
-                if (!parser_expect(parser, TT_IDENT, "Expected identifier after let")) return false;
-                Token name = parser_next(parser);
-                
-                if (!parser_expect(parser, TT_COLON, "Expected colon after variable name")) return false;
-                parser_next(parser);
-                
-                if (!parser_expect(parser, TT_IDENT, "Expected type after colon")) return false;
-                Token type = parser_next(parser);
-                
-                if (!parser_expect(parser, TT_EQUAL, "Expected equals sign after type")) return false;
-                parser_next(parser);
-                
-                Expr* expr = parser_expr(parser, 0);
-                if (expr == NULL) {
-                    fprintf(stderr, "Failed to parse variable definition value expression\n");
-                    return false;
-                }
-                
-                if (!parser_expect(parser, TT_SEMICOLON, "Expected semicolon after variable definition")) return false;
-                parser_next(parser); 
-                
-                Statement st = {
-                    .type = ST_VARIABLE_DEFINE,
-                    .as.var_def = {
-                        .name = name.as.ident,
-                        .type = type.as.ident,
-                        .value = expr
-                    }
-                };  
-                arrput(parser->statements, st);
-                return true;
-            }
+            if (t.as.keyword == TK_RETURN) { if (!parser_return_statement(parser)) { return false; } return true; }
+            if (t.as.keyword == TK_LET) {if (!parser_let_statement(parser)) { return false; } return true; }
             break;
         }
         default: {
@@ -179,4 +127,59 @@ bool parser_statement(Parser* parser) {
         }
     }
     return false;
+}
+
+bool parser_let_statement(Parser* parser) {
+    parser_next(parser); 
+    if (!parser_expect(parser, TT_IDENT, "Expected identifier after let")) return false;
+    Token name = parser_next(parser);
+    
+    if (!parser_expect(parser, TT_COLON, "Expected colon after variable name")) return false;
+    parser_next(parser);
+    
+    if (!parser_expect(parser, TT_IDENT, "Expected type after colon")) return false;
+    Token type = parser_next(parser);
+    
+    if (!parser_expect(parser, TT_EQUAL, "Expected equals sign after type")) return false;
+    parser_next(parser);
+    
+    Expr* expr = parser_expr(parser, 0);
+    if (expr == NULL) {
+        fprintf(stderr, "Failed to parse variable definition value expression\n");
+        return false;
+    }
+    
+    if (!parser_expect(parser, TT_SEMICOLON, "Expected semicolon after variable definition")) return false;
+    parser_next(parser); 
+    
+    Statement st = {
+        .type = ST_VARIABLE_DEFINE,
+        .as.var_def = {
+            .name = name.as.ident,
+            .type = type.as.ident,
+            .value = expr
+        }
+    };  
+    arrput(parser->statements, st);
+    return true;
+}
+bool parser_return_statement(Parser* parser) {
+    parser_next(parser);
+    Expr* value = parser_expr(parser, 0);
+    if (value == NULL) {
+        fprintf(stderr, "Failed to parse return statement value\n");
+        return false;
+    }
+
+    if (!parser_expect(parser, TT_SEMICOLON, "Expected semicolon after return statement")) return false;
+    parser_next(parser);
+
+    Statement st = {
+        .type = ST_RETURN,
+        .as = {
+            .ret = value
+        },
+    };
+    arrput(parser->statements, st);
+    return true;
 }
