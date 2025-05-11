@@ -96,6 +96,11 @@ bool lexer_parse_token(Lexer* lexer) {
             token.as.ident = NULL;
             token.as.keyword = TK_LET;
         }
+        if (strcmp(str, "if") == 0) {
+            token.type = TT_KEYWORD;
+            token.as.ident = NULL;
+            token.as.keyword = TK_IF;
+        }
         arrput(lexer->tokens, token);
         return true;
     }
@@ -165,6 +170,27 @@ bool lexer_parse_token(Lexer* lexer) {
             arrput(lexer->tokens, token);
             return true;
         }
+        case '{': {
+            Location loc = lexer->source.loc;
+            lexer_next(lexer);
+            const Token token = {
+                .type = TT_OPENCURLY,
+                .loc = loc,
+            };
+            arrput(lexer->tokens, token);
+            return true;
+        }
+
+        case '}': {
+            Location loc = lexer->source.loc;
+            lexer_next(lexer);
+            const Token token = {
+                .type = TT_CLOSECURLY,
+                .loc = loc,
+            };
+            arrput(lexer->tokens, token);
+            return true;
+        }
     }
 
     lexer->error = (LexerError) {
@@ -220,6 +246,14 @@ void token_print(Token t) {
             printf("%lu:%lu )\n", t.loc.row, t.loc.col);
             break;
         }
+        case TT_OPENCURLY: {
+            printf("%lu:%lu {\n", t.loc.row, t.loc.col);
+            break;
+        }
+        case TT_CLOSECURLY: {
+            printf("%lu:%lu }\n", t.loc.row, t.loc.col);
+            break;
+        }
         case TT_IDENT: {
             printf("%lu:%lu %s\n", t.loc.row, t.loc.col, t.as.ident);
             break;
@@ -229,6 +263,7 @@ void token_print(Token t) {
             switch (t.as.keyword) {
                 case TK_RETURN: keyword_display = "return"; break;
                 case TK_LET: keyword_display = "let"; break;
+                case TK_IF: keyword_display = "if"; break;
             }
             printf("%lu:%lu %s\n", t.loc.row, t.loc.col, keyword_display);
             break;

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include "../extern/stb_ds.h"
+#include "lexer.h"
 
 bool parser_is_finished(Parser* parser) {
     return arrlen(parser->tokens) <= parser->pos;
@@ -116,6 +117,7 @@ bool parser_statement(Parser* parser, Statement** statements) {
         case TT_KEYWORD: {
             if (t.as.keyword == TK_RETURN) { if (!parser_return_statement(parser, statements)) { return false; } return true; }
             if (t.as.keyword == TK_LET) {if (!parser_let_statement(parser, statements)) { return false; } return true; }
+            if (t.as.keyword == TK_IF) {if (!parser_if_statement(parser, statements)) { return false; } return true; }
             break;
         }
         default: {
@@ -181,4 +183,34 @@ bool parser_return_statement(Parser* parser, Statement** statements) {
     };
     arrput(*statements, st);
     return true;
+}
+
+bool parser_if_statement(Parser* parser, Statement** statements) {
+    parser_next(parser);
+    Expr* value = parser_expr(parser, 0);
+	if (value == NULL) {
+		fprintf(stderr, "Failed to parse if statement condition...\n");
+		return false;
+	}
+    if (!parser_expect(parser, TT_OPENCURLY, "Expected { after if condition expression")) return false;
+    parser_next(parser);
+
+	Statement* sts = NULL;
+	while (!parser_expect(parser, TT_CLOSECURLY, "Skipping")) {
+		if (!parser_statement(parser, &sts)) {
+			fprintf(stderr, "Failed to parse if body due to invalid statement\n");
+			return false;
+		}
+	}
+	parser_next(parser);
+	Statement st = {
+		.type = ST_IF,
+		.as.if_st ={
+			.body = sts,
+			.cond = value
+		}
+	};
+	arrput(*statements, st);
+
+	return true;
 }

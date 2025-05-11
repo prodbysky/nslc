@@ -16,12 +16,15 @@ typedef enum {
     TT_EQUAL,
     TT_OPENPAREN,
     TT_CLOSEPAREN,
+    TT_OPENCURLY,
+    TT_CLOSECURLY,
     TT_COUNT,
 } TokenType;
 
 typedef enum {
     TK_RETURN,
     TK_LET,
+    TK_IF,
 } TokenKeyword;
 
 // One indexed location

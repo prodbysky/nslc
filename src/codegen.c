@@ -15,6 +15,9 @@ void generate_code(Codegen* codegen, Statement* sts) {
     for (ptrdiff_t i = 0; i < arrlen(sts); i++) {
         Statement* st = &sts[i];
         switch (st->type) {
+            case ST_IF: {
+                assert(false);
+            }
             case ST_RETURN: {
                 QBEValue value = generate_expr(codegen, st->as.ret);
                 qbe_block_push_ins(codegen->entry, (QBEInstruction) {

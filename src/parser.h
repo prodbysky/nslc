@@ -30,10 +30,12 @@ typedef enum {
     ST_RETURN,
     // let/const <name>: <type> = <expr>;
     ST_VARIABLE_DEFINE,
+	// if <cond> { <body> }
+	ST_IF,
     ST_ERROR
 } StatementType;
 
-typedef struct {
+typedef struct Statement {
     StatementType type;
     union {
         Expr* ret;
@@ -42,6 +44,10 @@ typedef struct {
             char* type;
             Expr* value;
         } var_def;
+		struct {
+			Expr* cond;
+			struct Statement* body;
+		} if_st;
     } as;
 } Statement;
 
@@ -67,6 +73,7 @@ Expr* parser_expr(Parser* parser, int min_prec);
 bool parser_statement(Parser* parser, Statement** statements);
 bool parser_let_statement(Parser* parser, Statement** statements);
 bool parser_return_statement(Parser* parser, Statement** statements);
+bool parser_if_statement(Parser* parser, Statement** statements);
 int parser_current_token_precedence(const Parser* parser);
 void parser_error_display(ParserError error, char* file_content, char* input_name);
 
