@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <ctype.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -169,7 +168,7 @@ Parser parse_file(Token* tokens, Arena* arena, char* file_name) {
     };
 
     while (!parser_is_finished(&parser)) {
-        if (!parser_statement(&parser)) {
+        if (!parser_statement(&parser, &parser.statements)) {
             fprintf(stderr, "Failed to parse file due to invalid statement\n");
             arrfree(parser.statements);
             parser.statements = NULL;

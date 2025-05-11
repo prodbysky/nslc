@@ -1,6 +1,5 @@
 #include "parser.h"
 #include <stdio.h>
-#include <string.h>
 #include <assert.h>
 #include "../extern/stb_ds.h"
 
@@ -107,7 +106,7 @@ Expr* parser_expr(Parser* parser, int min_prec) {
     return left;
 }
 
-bool parser_statement(Parser* parser) {
+bool parser_statement(Parser* parser, Statement** statements) {
     if (parser_is_finished(parser)) {
         fprintf(stderr, "Unexpected EOF\n");
         return false;
@@ -115,8 +114,8 @@ bool parser_statement(Parser* parser) {
     Token t = parser_peek(parser);
     switch (t.type) {
         case TT_KEYWORD: {
-            if (t.as.keyword == TK_RETURN) { if (!parser_return_statement(parser)) { return false; } return true; }
-            if (t.as.keyword == TK_LET) {if (!parser_let_statement(parser)) { return false; } return true; }
+            if (t.as.keyword == TK_RETURN) { if (!parser_return_statement(parser, statements)) { return false; } return true; }
+            if (t.as.keyword == TK_LET) {if (!parser_let_statement(parser, statements)) { return false; } return true; }
             break;
         }
         default: {
@@ -129,7 +128,7 @@ bool parser_statement(Parser* parser) {
     return false;
 }
 
-bool parser_let_statement(Parser* parser) {
+bool parser_let_statement(Parser* parser, Statement** statements) {
     parser_next(parser); 
     if (!parser_expect(parser, TT_IDENT, "Expected identifier after let")) return false;
     Token name = parser_next(parser);
@@ -160,10 +159,10 @@ bool parser_let_statement(Parser* parser) {
             .value = expr
         }
     };  
-    arrput(parser->statements, st);
+    arrput(*statements, st);
     return true;
 }
-bool parser_return_statement(Parser* parser) {
+bool parser_return_statement(Parser* parser, Statement** statements) {
     parser_next(parser);
     Expr* value = parser_expr(parser, 0);
     if (value == NULL) {
@@ -180,6 +179,6 @@ bool parser_return_statement(Parser* parser) {
             .ret = value
         },
     };
-    arrput(parser->statements, st);
+    arrput(*statements, st);
     return true;
 }
