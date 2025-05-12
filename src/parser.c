@@ -1,4 +1,5 @@
 #include "parser.h"
+#include <stdbool.h>
 #include <stdio.h>
 #include <assert.h>
 #include "../extern/stb_ds.h"
@@ -119,6 +120,28 @@ bool parser_statement(Parser* parser, Statement** statements) {
             if (t.as.keyword == TK_LET) {if (!parser_let_statement(parser, statements)) { return false; } return true; }
             if (t.as.keyword == TK_IF) {if (!parser_if_statement(parser, statements)) { return false; } return true; }
             break;
+        }
+        case TT_IDENT: {
+            if (!parser_expect(parser, TT_IDENT, "Expected name in variable assignment statement\n")) return false;
+            char* var_name = parser_next(parser).as.ident;
+            if (!parser_expect(parser, TT_EQUAL, "Expected name in variable assignment statement\n")) return false;
+            parser_next(parser);
+            Expr* new_value = parser_expr(parser, 0);
+            if (new_value == NULL) {
+                fprintf(stderr, "Failed to parse new value expression\n");
+                return false;
+            }
+            if (!parser_expect(parser, TT_SEMICOLON, "Expected `;` after new value expression in variable assignment statement\n")) return false;
+            parser_next(parser);
+            Statement st = {
+                .type = ST_SET_VARIABLE,
+                .as.var_assign = {
+                    .new_val = new_value,
+                    .var = var_name,
+                }
+            };
+            arrput(*statements, st);
+            return true;
         }
         default: {
             Token t = parser_peek(parser);

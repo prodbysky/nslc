@@ -32,6 +32,8 @@ typedef enum {
     ST_VARIABLE_DEFINE,
 	// if <cond> { <body> }
 	ST_IF,
+    // <name> = <expr>;
+    ST_SET_VARIABLE,
     ST_ERROR
 } StatementType;
 
@@ -44,10 +46,14 @@ typedef struct Statement {
             char* type;
             Expr* value;
         } var_def;
-		struct {
-			Expr* cond;
-			struct Statement* body;
-		} if_st;
+        struct {
+            char* var;
+            Expr* new_val;
+        } var_assign;
+        struct {
+            Expr* cond;
+            struct Statement* body;
+        } if_st;
     } as;
 } Statement;
 

@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "../extern/stb_ds.h"
+#include "parser.h"
 #include "qbe.h"
 
 char* fresh_temp(Codegen* codegen) {
@@ -131,6 +132,25 @@ QBEValue generate_expr(Codegen* codegen, const Expr* expr) {
 
 void generate_statement(Codegen* codegen, Statement st) {
         switch (st.type) {
+            case ST_SET_VARIABLE: {
+                QBEValue new_value = generate_expr(codegen, st.as.var_assign.new_val);
+
+                Variable v = {0};
+                for (ptrdiff_t i = 0; i < arrlen(codegen->variables); i++) {
+                    if (strcmp(codegen->variables[i].name, st.as.var_assign.var) == 0) {
+                        v = codegen->variables[i];
+                        break;
+                    }
+                }
+                qbe_block_push_ins(codegen->entry, (QBEInstruction) {
+                    .type = QIT_STOREW,
+                    .storew = {
+                        .value = new_value,
+                        .name = v.ptr_name
+                    }
+                });
+                return;
+            }
             case ST_IF: {
                 QBEValue cond = generate_expr(codegen, st.as.if_st.cond);
                 char* then_label_name = fresh_label(codegen, "then_");
