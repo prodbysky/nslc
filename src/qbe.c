@@ -2,6 +2,7 @@
 
 #include "../extern/stb_ds.h"
 #include <assert.h>
+#include <stdio.h>
 
 
 QBEModule qbe_module_new() {
@@ -73,6 +74,14 @@ void qbe_block_assign_ins(QBEBlock* block, QBEInstruction ins, QBEValueType type
     arrput(block->statements, st);
 }
 
+void qbe_block_push_label(QBEBlock* block, char* name) {
+    const QBEStatement st = {
+        .type = QST_LABEL,
+		.name = name
+    };
+    arrput(block->statements, st);
+}
+
 void qbe_module_write(const QBEModule* module, FILE* file) {
     for (ptrdiff_t i = 0; i < arrlen(module->functions); i++) {
         qbe_function_write(&module->functions[i], file);
@@ -93,6 +102,10 @@ void qbe_block_write(const QBEBlock* block, FILE* file) {
     }
 }
 void qbe_statement_write(const QBEStatement* statement, FILE* file) {
+	if (statement->type == QST_LABEL) {
+		fprintf(file, "@%s\n", statement->name);
+		return;
+	}
 
     if (statement->type == QST_ASSIGN) {
         assert(statement->assign.value.kind == QVK_TEMP);
@@ -179,6 +192,41 @@ void qbe_instruction_write(const QBEInstruction* instruction, FILE* file) {
             fprintf(file, "loadw ");
             fprintf(file, "%%%s", instruction->loadw.name);
             fprintf(file, "\n");
+            break;
+        }
+        case QIT_CMP: {
+            fprintf(file, "c");
+            switch (instruction->cmp.cmp) {
+                case QCT_NE: {
+                    fprintf(file, "ne");
+                    break;
+                }
+            }
+            switch (instruction->cmp.type) {
+                case QVT_WORD: {
+                    fprintf(file, "w ");
+                    break;
+                }
+                case QVT_LONG: {
+                    fprintf(file, "l ");
+                    break;
+                }
+            }
+            qbe_write_left_right(&instruction->cmp.l, &instruction->cmp.r, file);
+            fprintf(file, "\n");
+            break;
+        }
+        case QIT_JMP: {
+            fprintf(file, "jmp @%s\n", instruction->jmp.label);
+            break;
+        }
+        case QIT_JNZ: {
+            fprintf(file, "jnz ");
+            switch (instruction->jnz.value.kind) {
+                case QVK_CONST: fprintf(file, "%lu, ", instruction->jnz.value.const_i); break;
+                case QVK_TEMP: fprintf(file, "%%%s, ", instruction->jnz.value.name); break;
+            }
+            fprintf(file, "@%s, @%s\n", instruction->jnz.then, instruction->jnz.otherwise);
             break;
         }
     } 

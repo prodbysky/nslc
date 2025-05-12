@@ -14,7 +14,14 @@ typedef enum {
     QIT_ALLOC8,
     QIT_STOREW,
     QIT_LOADW,
+    QIT_CMP,
+    QIT_JMP,
+    QIT_JNZ,
 } QBEInstructionType;
+
+typedef enum {
+    QCT_NE,
+} QBEComparisonType;
 
 typedef enum {
     QVT_WORD,
@@ -52,12 +59,26 @@ typedef struct {
         struct {
             char* name;
         } loadw;
+        struct {
+            char* label;
+        } jmp;
+        struct {
+            char* then;
+            char* otherwise;
+            QBEValue value;
+        } jnz;
+        struct {
+            QBEValueType type;
+            QBEComparisonType cmp;
+            QBEValue l, r;
+        } cmp;
     };
 } QBEInstruction;
 
 typedef enum {
     QST_ASSIGN, // %value w= instr
-    QST_THROWAWAY // instr
+    QST_THROWAWAY, // instr
+	QST_LABEL // @label
 } QBEStatementType;
 
 typedef struct {
@@ -69,6 +90,7 @@ typedef struct {
             QBEValueType type;
             QBEInstruction instruction;
         } assign;
+		char* name;
     };
 } QBEStatement;
 
@@ -96,6 +118,8 @@ QBEBlock* qbe_function_push_block(QBEFunction* function, char* name);
 void qbe_block_push_ins(QBEBlock* block, QBEInstruction ins);
 // Pushes instruction that stores its return value into val (has to be a temporary value)
 void qbe_block_assign_ins(QBEBlock* block, QBEInstruction ins, QBEValueType type, QBEValue val);
+
+void qbe_block_push_label(QBEBlock* block, char* name);
 
 void qbe_module_write(const QBEModule* module, FILE* file);
 void qbe_function_write(const QBEFunction* function, FILE* file);

@@ -21,6 +21,7 @@ typedef struct {
 
 
 void generate_code(Codegen* codegen, Statement* sts);
+void generate_statement(Codegen* codegen, Statement st);
 QBEValue generate_expr(Codegen* codegen, const Expr* expr);
 char* fresh_temp(Codegen* codegen);
 
