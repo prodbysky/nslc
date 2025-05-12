@@ -1,7 +1,7 @@
 # nslc - Early rewrite of nsl language in C
 
 ## Features
- - Branches via `if` statements
+ - Branches via `if` and `while` statements
  - Variables (only ints for now)
 
 ## Build
