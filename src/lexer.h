@@ -25,6 +25,7 @@ typedef enum {
     TK_RETURN,
     TK_LET,
     TK_IF,
+    TK_WHILE,
 } TokenKeyword;
 
 // One indexed location

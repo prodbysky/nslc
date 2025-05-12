@@ -34,6 +34,8 @@ typedef enum {
 	ST_IF,
     // <name> = <expr>;
     ST_SET_VARIABLE,
+    // while <cond> { <body> }
+    ST_WHILE,
     ST_ERROR
 } StatementType;
 
@@ -54,6 +56,10 @@ typedef struct Statement {
             Expr* cond;
             struct Statement* body;
         } if_st;
+        struct {
+            Expr* cond;
+            struct Statement* body;
+        } while_st;
     } as;
 } Statement;
 
@@ -80,6 +86,7 @@ bool parser_statement(Parser* parser, Statement** statements);
 bool parser_let_statement(Parser* parser, Statement** statements);
 bool parser_return_statement(Parser* parser, Statement** statements);
 bool parser_if_statement(Parser* parser, Statement** statements);
+bool parser_while_statement(Parser* parser, Statement** statements);
 int parser_current_token_precedence(const Parser* parser);
 void parser_error_display(ParserError error, char* file_content, char* input_name);
 

@@ -55,12 +55,12 @@ Expr* parser_primary(Parser* parser) {
         }
         case TT_IDENT: {
             Expr* expr = arena_alloc(parser->arena, sizeof(Expr));
-            expr->type = ET_VARIABLE;
-            expr->as.variable = t.as.ident;
             if (expr == NULL) {
                 fprintf(stderr, "Failed to parse variable name expression value\n");
                 return false;
             }
+            expr->type = ET_VARIABLE;
+            expr->as.variable = t.as.ident;
             parser_next(parser);
             return expr;
         }
@@ -119,6 +119,7 @@ bool parser_statement(Parser* parser, Statement** statements) {
             if (t.as.keyword == TK_RETURN) { if (!parser_return_statement(parser, statements)) { return false; } return true; }
             if (t.as.keyword == TK_LET) {if (!parser_let_statement(parser, statements)) { return false; } return true; }
             if (t.as.keyword == TK_IF) {if (!parser_if_statement(parser, statements)) { return false; } return true; }
+            if (t.as.keyword == TK_WHILE) {if (!parser_while_statement(parser, statements)) { return false; } return true; }
             break;
         }
         case TT_IDENT: {
@@ -211,29 +212,59 @@ bool parser_return_statement(Parser* parser, Statement** statements) {
 bool parser_if_statement(Parser* parser, Statement** statements) {
     parser_next(parser);
     Expr* value = parser_expr(parser, 0);
-	if (value == NULL) {
-		fprintf(stderr, "Failed to parse if statement condition...\n");
-		return false;
-	}
+    if (value == NULL) {
+        fprintf(stderr, "Failed to parse if statement condition...\n");
+        return false;
+    }
     if (!parser_expect(parser, TT_OPENCURLY, "Expected { after if condition expression")) return false;
     parser_next(parser);
 
-	Statement* sts = NULL;
-	while (!parser_expect(parser, TT_CLOSECURLY, "Skipping")) {
-		if (!parser_statement(parser, &sts)) {
-			fprintf(stderr, "Failed to parse if body due to invalid statement\n");
-			return false;
-		}
-	}
-	parser_next(parser);
-	Statement st = {
-		.type = ST_IF,
-		.as.if_st ={
-			.body = sts,
-			.cond = value
-		}
-	};
-	arrput(*statements, st);
+    Statement* sts = NULL;
+    while (!parser_expect(parser, TT_CLOSECURLY, "Skipping")) {
+        if (!parser_statement(parser, &sts)) {
+            fprintf(stderr, "Failed to parse if body due to invalid statement\n");
+            return false;
+        }
+    }
+    parser_next(parser);
+    Statement st = {
+        .type = ST_IF,
+        .as.if_st ={
+            .body = sts,
+            .cond = value
+        }
+    };
+    arrput(*statements, st);
 
-	return true;
+    return true;
+}
+
+bool parser_while_statement(Parser* parser, Statement** statements) {
+    parser_next(parser);
+    Expr* value = parser_expr(parser, 0);
+    if (value == NULL) {
+        fprintf(stderr, "Failed to parse while statement condition...\n");
+        return false;
+    }
+    if (!parser_expect(parser, TT_OPENCURLY, "Expected { after while condition expression")) return false;
+    parser_next(parser);
+
+    Statement* sts = NULL;
+    while (!parser_expect(parser, TT_CLOSECURLY, "Skipping")) {
+        if (!parser_statement(parser, &sts)) {
+            fprintf(stderr, "Failed to parse while body due to invalid statement\n");
+            return false;
+        }
+    }
+    parser_next(parser);
+    Statement st = {
+        .type = ST_WHILE,
+        .as.while_st = {
+            .body = sts,
+            .cond = value
+        }
+    };
+    arrput(*statements, st);
+
+    return true;
 }

@@ -226,6 +226,42 @@ void generate_statement(Codegen* codegen, Statement st) {
                 );
                 return;
             }
+            case ST_WHILE: {
+                char* header_label_name = fresh_label(codegen, "header_");
+                char* body_label_name = fresh_label(codegen, "body_");
+                char* out_label_name = fresh_label(codegen, "out_");
+                char* cond_name = fresh_temp(codegen);
+                qbe_block_push_label(codegen->entry, header_label_name);
+                QBEValue cond = generate_expr(codegen, st.as.while_st.cond);
+                QBEValue cond_place = {
+                    .name = cond_name,
+                    .kind = QVK_TEMP,
+                };
+                const QBEValue zero = {
+                    .kind = QVK_CONST,
+                    .const_i = 0
+                };
+                qbe_block_assign_ins(codegen->entry, (QBEInstruction) {
+                    .type = QIT_CMP,
+                    .cmp = {
+                        .type = QVT_WORD,
+                        .cmp = QCT_NE,
+                        .l = cond,
+                        .r = zero
+                    }
+                }, QVT_WORD, cond_place);
+                qbe_block_push_ins(codegen->entry, (QBEInstruction) {
+                    .type = QIT_JNZ,
+                    .jnz = {.then = body_label_name, .otherwise = out_label_name, .value = cond_place}
+                });
+                qbe_block_push_label(codegen->entry, body_label_name);
+                for (ptrdiff_t i = 0; i < arrlen(st.as.if_st.body); i++) {
+                    generate_statement(codegen, st.as.if_st.body[i]);
+                }
+                qbe_block_push_ins(codegen->entry, (QBEInstruction) { .type = QIT_JMP, .jmp = { .label = header_label_name } });
+                qbe_block_push_label(codegen->entry, out_label_name);
+                return;
+            }
             case ST_ERROR: {
                 fprintf(stderr, "Found some invalid statement during parsing\n");
                 return;
