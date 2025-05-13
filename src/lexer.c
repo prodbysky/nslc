@@ -111,7 +111,7 @@ bool lexer_parse_token(Lexer* lexer) {
     }
 
     switch (lexer_peek(lexer)) {
-        case '+': case '-': case '*': case '/': {
+        case '+': case '-': case '*': case '/': case '>': case '<': {
             Location loc = lexer->source.loc;
             char saved = lexer_peek(lexer);
             lexer_next(lexer);

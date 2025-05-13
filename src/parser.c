@@ -19,8 +19,9 @@ Token parser_next(Parser* parser) {
 
 int parser_current_token_precedence(const Parser* parser) {
     switch (parser_peek(parser).as.operator) {
-        case '+': case '-': return 1;
-        case '*': case '/': return 2;
+        case '>': case '<': return 2;
+        case '+': case '-': return 2;
+        case '*': case '/': return 3;
     }
     return -1;
 }

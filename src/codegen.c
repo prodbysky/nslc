@@ -124,6 +124,48 @@ QBEValue generate_expr(Codegen* codegen, const Expr* expr) {
                     );
                     return result; 
                 }
+                case '>': {
+                    char* name = fresh_temp(codegen);
+
+                    QBEValue result = { .kind = QVK_TEMP, .name = name };
+
+                    qbe_block_assign_ins(
+                        codegen->entry, 
+                        (QBEInstruction) {
+                            .type = QIT_CMP,
+                            .cmp = {
+                                .type = QVT_WORD,
+                                .cmp = QCT_GT,
+                                .l = left, 
+                                .r = right
+                            }
+                        }, 
+                        QVT_WORD, 
+                        result
+                    );
+                    return result; 
+                }
+                case '<': {
+                    char* name = fresh_temp(codegen);
+
+                    QBEValue result = { .kind = QVK_TEMP, .name = name };
+
+                    qbe_block_assign_ins(
+                        codegen->entry, 
+                        (QBEInstruction) {
+                            .type = QIT_CMP,
+                            .cmp = {
+                                .type = QVT_WORD,
+                                .cmp = QCT_LT,
+                                .l = left, 
+                                .r = right
+                            }
+                        }, 
+                        QVT_WORD, 
+                        result
+                    );
+                    return result; 
+                }
             }
         }
     }

@@ -201,6 +201,14 @@ void qbe_instruction_write(const QBEInstruction* instruction, FILE* file) {
                     fprintf(file, "ne");
                     break;
                 }
+                case QCT_GT: {
+                    fprintf(file, "sgt");
+                    break;
+                }
+                case QCT_LT: {
+                    fprintf(file, "slt");
+                    break;
+                }
             }
             switch (instruction->cmp.type) {
                 case QVT_WORD: {

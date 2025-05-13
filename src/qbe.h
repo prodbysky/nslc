@@ -21,6 +21,8 @@ typedef enum {
 
 typedef enum {
     QCT_NE,
+    QCT_GT,
+    QCT_LT,
 } QBEComparisonType;
 
 typedef enum {

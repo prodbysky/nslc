@@ -12,6 +12,7 @@
 #include "arena.h"
 #include "qbe.h"
 #include "codegen.h"
+#include "type_checker.h"
 
 #define NOB_IMPLEMENTATION
 #define NOB_STRIP_PREFIX
@@ -53,7 +54,16 @@ int main(int argc, char** argv) {
         arena_delete(&arena);
         return 1;
     } 
+    TypeChecker checker = {
+        .ast = parser.statements,
+        .err = false,
+        .vars = NULL,
+    };
 
+    if (type_check(&checker)) {
+        fprintf(stderr, "Found type error :)\n");
+        return 1;
+    }
 
     QBEModule mod = qbe_module_new();
     QBEFunction* main = qbe_module_create_function(&mod, "main", QVT_WORD);
