@@ -36,6 +36,12 @@ QBEValue generate_expr(Codegen* codegen, const Expr* expr) {
                 .const_i = expr->as.number
             };
         }
+        case ET_BOOL: {
+            return (QBEValue) {
+                .kind = QVK_CONST,
+                .const_i = expr->as.boolean
+            };
+        }
         case ET_VARIABLE: {
             Variable v = {0};
             for (ptrdiff_t i = 0; i < arrlen(codegen->variables); i++) {

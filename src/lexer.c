@@ -106,6 +106,16 @@ bool lexer_parse_token(Lexer* lexer) {
             token.as.ident = NULL;
             token.as.keyword = TK_WHILE;
         }
+        if (strcmp(str, "true") == 0) {
+            token.type = TT_KEYWORD;
+            token.as.ident = NULL;
+            token.as.keyword = TK_TRUE;
+        }
+        if (strcmp(str, "false") == 0) {
+            token.type = TT_KEYWORD;
+            token.as.ident = NULL;
+            token.as.keyword = TK_FALSE;
+        }
         arrput(lexer->tokens, token);
         return true;
     }
@@ -270,6 +280,8 @@ void token_print(Token t) {
                 case TK_LET: keyword_display = "let"; break;
                 case TK_IF: keyword_display = "if"; break;
                 case TK_WHILE: keyword_display = "while"; break;
+                case TK_TRUE: keyword_display = "true"; break;
+                case TK_FALSE: keyword_display = "false"; break;
             }
             printf("%lu:%lu %s\n", t.loc.row, t.loc.col, keyword_display);
             break;

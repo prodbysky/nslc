@@ -8,9 +8,15 @@
 
 typedef enum {
     ET_NUMBER,
+    ET_BOOL,
     ET_VARIABLE,
     ET_BINARY
 } ExprType;
+
+typedef enum {
+    EVT_INT,
+    EVT_BOOL,
+} ExprValueType;
 
 typedef struct Expr {
     ExprType type;
@@ -22,6 +28,7 @@ typedef struct Expr {
             struct Expr* right;
         } binary;
         char* variable;
+        bool boolean;
     } as;
 } Expr;
 
@@ -41,6 +48,7 @@ typedef enum {
 
 typedef struct Statement {
     StatementType type;
+    Location loc;
     union {
         Expr* ret;
         struct {

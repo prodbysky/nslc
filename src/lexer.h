@@ -26,6 +26,8 @@ typedef enum {
     TK_LET,
     TK_IF,
     TK_WHILE,
+    TK_FALSE,
+    TK_TRUE,
 } TokenKeyword;
 
 // One indexed location

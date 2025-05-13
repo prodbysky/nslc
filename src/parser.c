@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include "../extern/stb_ds.h"
+#include "arena.h"
 #include "lexer.h"
 
 bool parser_is_finished(Parser* parser) {
@@ -62,6 +63,17 @@ Expr* parser_primary(Parser* parser) {
             }
             expr->type = ET_VARIABLE;
             expr->as.variable = t.as.ident;
+            parser_next(parser);
+            return expr;
+        }
+        case TT_KEYWORD: {
+            if (t.as.keyword != TK_FALSE && t.as.keyword != TK_TRUE) {
+                fprintf(stderr, "Something really wrong happened, tried to parse a keyword that's not `true` or `false`\n");
+                return false;
+            }
+            Expr* expr = arena_alloc(parser->arena, sizeof(Expr));
+            expr->type = ET_BOOL;
+            expr->as.boolean = t.as.keyword == TK_TRUE;
             parser_next(parser);
             return expr;
         }
@@ -125,7 +137,9 @@ bool parser_statement(Parser* parser, Statement** statements) {
         }
         case TT_IDENT: {
             if (!parser_expect(parser, TT_IDENT, "Expected name in variable assignment statement\n")) return false;
-            char* var_name = parser_next(parser).as.ident;
+            Token t_ident = parser_next(parser);
+            Location begin = t_ident.loc;
+            char* var_name = t_ident.as.ident;
             if (!parser_expect(parser, TT_EQUAL, "Expected name in variable assignment statement\n")) return false;
             parser_next(parser);
             Expr* new_value = parser_expr(parser, 0);
@@ -137,6 +151,7 @@ bool parser_statement(Parser* parser, Statement** statements) {
             parser_next(parser);
             Statement st = {
                 .type = ST_SET_VARIABLE,
+                .loc = begin,
                 .as.var_assign = {
                     .new_val = new_value,
                     .var = var_name,
@@ -156,7 +171,7 @@ bool parser_statement(Parser* parser, Statement** statements) {
 }
 
 bool parser_let_statement(Parser* parser, Statement** statements) {
-    parser_next(parser); 
+    Location loc = parser_next(parser).loc; 
     if (!parser_expect(parser, TT_IDENT, "Expected identifier after let")) return false;
     Token name = parser_next(parser);
     
@@ -180,6 +195,7 @@ bool parser_let_statement(Parser* parser, Statement** statements) {
     
     Statement st = {
         .type = ST_VARIABLE_DEFINE,
+        .loc = loc,
         .as.var_def = {
             .name = name.as.ident,
             .type = type.as.ident,
@@ -190,7 +206,7 @@ bool parser_let_statement(Parser* parser, Statement** statements) {
     return true;
 }
 bool parser_return_statement(Parser* parser, Statement** statements) {
-    parser_next(parser);
+    Location loc = parser_next(parser).loc;
     Expr* value = parser_expr(parser, 0);
     if (value == NULL) {
         fprintf(stderr, "Failed to parse return statement value\n");
@@ -202,6 +218,7 @@ bool parser_return_statement(Parser* parser, Statement** statements) {
 
     Statement st = {
         .type = ST_RETURN,
+        .loc = loc,
         .as = {
             .ret = value
         },
@@ -211,7 +228,7 @@ bool parser_return_statement(Parser* parser, Statement** statements) {
 }
 
 bool parser_if_statement(Parser* parser, Statement** statements) {
-    parser_next(parser);
+    Location loc = parser_next(parser).loc;
     Expr* value = parser_expr(parser, 0);
     if (value == NULL) {
         fprintf(stderr, "Failed to parse if statement condition...\n");
@@ -229,6 +246,7 @@ bool parser_if_statement(Parser* parser, Statement** statements) {
     }
     parser_next(parser);
     Statement st = {
+        .loc = loc,
         .type = ST_IF,
         .as.if_st ={
             .body = sts,
@@ -241,7 +259,7 @@ bool parser_if_statement(Parser* parser, Statement** statements) {
 }
 
 bool parser_while_statement(Parser* parser, Statement** statements) {
-    parser_next(parser);
+    Location loc = parser_next(parser).loc;
     Expr* value = parser_expr(parser, 0);
     if (value == NULL) {
         fprintf(stderr, "Failed to parse while statement condition...\n");
@@ -260,6 +278,7 @@ bool parser_while_statement(Parser* parser, Statement** statements) {
     parser_next(parser);
     Statement st = {
         .type = ST_WHILE,
+        .loc = loc,
         .as.while_st = {
             .body = sts,
             .cond = value

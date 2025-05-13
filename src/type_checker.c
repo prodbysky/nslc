@@ -1,7 +1,6 @@
 #include "type_checker.h"
 #include <assert.h>
 #include <stddef.h>
-#include <stdio.h>
 #include <string.h>
 #include "../extern/stb_ds.h"
 #include "parser.h"
@@ -98,6 +97,9 @@ static CheckerType type_check_expr(TypeChecker* checker, Expr* expr) {
     switch (expr->type) {
         case ET_NUMBER: {
             return CT_INT;
+        }
+        case ET_BOOL: {
+            return CT_BOOL;
         }
         case ET_BINARY: {
             CheckerType left = type_check_expr(checker, expr->as.binary.left); if (left == CT_ERROR) return CT_ERROR;
