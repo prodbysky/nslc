@@ -19,6 +19,12 @@
  - Decent C interop
  - Easy to write/read
  - Intermediate IR for optimizations
+ - Self-hosting
+
+## Features that will be implemented before becoming self-hosted
+ - C interop (half assed tho)
+ - Functions
+ - Structs
 
 ## Dependencies
  - C compiler to build compiler from source.
