@@ -24,11 +24,11 @@ char* fresh_label(Codegen* codegen, char* prefix) {
 
 void generate_code(Codegen* codegen, Statement* sts) {
     for (ptrdiff_t i = 0; i < arrlen(sts); i++) {
-        generate_statement(codegen, sts[i]);
+        generate_statement(codegen, sts[i], codegen->entry);
     }
 }
 
-QBEValue generate_expr(Codegen* codegen, const Expr* expr) {
+QBEValue generate_expr(Codegen* codegen, const Expr* expr, QBEBlock* block) {
     switch (expr->type) {
         case ET_NUMBER: {
             return (QBEValue) {
@@ -65,8 +65,8 @@ QBEValue generate_expr(Codegen* codegen, const Expr* expr) {
             return result;
         }
         case ET_BINARY: {
-            QBEValue left = generate_expr(codegen, expr->as.binary.left);
-            QBEValue right = generate_expr(codegen, expr->as.binary.right);
+            QBEValue left = generate_expr(codegen, expr->as.binary.left, block);
+            QBEValue right = generate_expr(codegen, expr->as.binary.right, block);
             switch (expr->as.binary.op) {
                 case '+': {
                     char* name = fresh_temp(codegen);
@@ -132,45 +132,13 @@ QBEValue generate_expr(Codegen* codegen, const Expr* expr) {
                 }
                 case '>': {
                     char* name = fresh_temp(codegen);
-
                     QBEValue result = { .kind = QVK_TEMP, .name = name };
-
-                    qbe_block_assign_ins(
-                        codegen->entry, 
-                        (QBEInstruction) {
-                            .type = QIT_CMP,
-                            .cmp = {
-                                .type = QVT_WORD,
-                                .cmp = QCT_GT,
-                                .l = left, 
-                                .r = right
-                            }
-                        }, 
-                        QVT_WORD, 
-                        result
-                    );
-                    return result; 
+                    return generate_cmp(block, QCT_GT, QVT_WORD, left, right, result);
                 }
                 case '<': {
                     char* name = fresh_temp(codegen);
-
                     QBEValue result = { .kind = QVK_TEMP, .name = name };
-
-                    qbe_block_assign_ins(
-                        codegen->entry, 
-                        (QBEInstruction) {
-                            .type = QIT_CMP,
-                            .cmp = {
-                                .type = QVT_WORD,
-                                .cmp = QCT_LT,
-                                .l = left, 
-                                .r = right
-                            }
-                        }, 
-                        QVT_WORD, 
-                        result
-                    );
-                    return result; 
+                    return generate_cmp(block, QCT_LT, QVT_WORD, left, right, result);
                 }
             }
         }
@@ -178,10 +146,10 @@ QBEValue generate_expr(Codegen* codegen, const Expr* expr) {
     assert(false && "Not implemented");
 }
 
-void generate_statement(Codegen* codegen, Statement st) {
+void generate_statement(Codegen* codegen, Statement st, QBEBlock* block) {
         switch (st.type) {
             case ST_SET_VARIABLE: {
-                QBEValue new_value = generate_expr(codegen, st.as.var_assign.new_val);
+                QBEValue new_value = generate_expr(codegen, st.as.var_assign.new_val, block);
 
                 Variable v = {0};
                 for (ptrdiff_t i = 0; i < arrlen(codegen->variables); i++) {
@@ -190,50 +158,28 @@ void generate_statement(Codegen* codegen, Statement st) {
                         break;
                     }
                 }
-                qbe_block_push_ins(codegen->entry, (QBEInstruction) {
-                    .type = QIT_STOREW,
-                    .storew = {
-                        .value = new_value,
-                        .name = v.ptr_name
-                    }
-                });
+                generate_store(block, new_value, v.ptr_name);
                 return;
             }
             case ST_IF: {
-                QBEValue cond = generate_expr(codegen, st.as.if_st.cond);
+                QBEValue cond = generate_expr(codegen, st.as.if_st.cond, block);
                 char* then_label_name = fresh_label(codegen, "then_");
                 char* else_label_name = fresh_label(codegen, "else_");
                 char* cond_name = fresh_temp(codegen);
-                QBEValue cond_place = {
-                    .name = cond_name,
-                    .kind = QVK_TEMP,
-                };
-                const QBEValue zero = {
-                    .kind = QVK_CONST,
-                    .const_i = 0
-                };
-                qbe_block_assign_ins(codegen->entry, (QBEInstruction) {
-                    .type = QIT_CMP,
-                    .cmp = {
-                        .type = QVT_WORD,
-                        .cmp = QCT_NE,
-                        .l = cond,
-                        .r = zero
-                    }
-                }, QVT_WORD, cond_place);
+                QBEValue cond_place = { .name = cond_name, .kind = QVK_TEMP };
+                const QBEValue zero = { .kind = QVK_CONST, .const_i = 0 };
+                generate_cmp(block, QCT_NE, QVT_WORD, cond, zero, cond_place);
                 qbe_block_push_ins(codegen->entry, (QBEInstruction) {
                     .type = QIT_JNZ,
                     .jnz = {.then = then_label_name, .otherwise = else_label_name, .value = cond_place}
                 });
                 qbe_block_push_label(codegen->entry, then_label_name);
-                for (ptrdiff_t i = 0; i < arrlen(st.as.if_st.body); i++) {
-                    generate_statement(codegen, st.as.if_st.body[i]);
-                }
+                for (ptrdiff_t i = 0; i < arrlen(st.as.if_st.body); i++) generate_statement(codegen, st.as.if_st.body[i], block);
                 qbe_block_push_label(codegen->entry, else_label_name);
                 return;
             }
             case ST_RETURN: {
-                QBEValue value = generate_expr(codegen, st.as.ret);
+                QBEValue value = generate_expr(codegen, st.as.ret, block);
                 qbe_block_push_ins(codegen->entry, (QBEInstruction) {
                     .type = QIT_RETURN,
                     .ret = value
@@ -260,18 +206,9 @@ void generate_statement(Codegen* codegen, Statement st) {
                 };
                 arrput(codegen->variables, v);
                 
-                QBEValue value = generate_expr(codegen, st.as.var_def.value);
+                QBEValue value = generate_expr(codegen, st.as.var_def.value, block);
                 
-                qbe_block_push_ins(
-                    codegen->entry, 
-                    (QBEInstruction) {
-                        .type = QIT_STOREW,
-                        .storew = {
-                            .value = value,
-                            .name = var_temp
-                        }
-                    }
-                );
+                generate_store(block, value, var_temp);
                 return;
             }
             case ST_WHILE: {
@@ -280,7 +217,7 @@ void generate_statement(Codegen* codegen, Statement st) {
                 char* out_label_name = fresh_label(codegen, "out_");
                 char* cond_name = fresh_temp(codegen);
                 qbe_block_push_label(codegen->entry, header_label_name);
-                QBEValue cond = generate_expr(codegen, st.as.while_st.cond);
+                QBEValue cond = generate_expr(codegen, st.as.while_st.cond, block);
                 QBEValue cond_place = {
                     .name = cond_name,
                     .kind = QVK_TEMP,
@@ -289,22 +226,14 @@ void generate_statement(Codegen* codegen, Statement st) {
                     .kind = QVK_CONST,
                     .const_i = 0
                 };
-                qbe_block_assign_ins(codegen->entry, (QBEInstruction) {
-                    .type = QIT_CMP,
-                    .cmp = {
-                        .type = QVT_WORD,
-                        .cmp = QCT_NE,
-                        .l = cond,
-                        .r = zero
-                    }
-                }, QVT_WORD, cond_place);
+                generate_cmp(block, QCT_NE, QVT_WORD, cond, zero, cond_place);
                 qbe_block_push_ins(codegen->entry, (QBEInstruction) {
                     .type = QIT_JNZ,
                     .jnz = {.then = body_label_name, .otherwise = out_label_name, .value = cond_place}
                 });
                 qbe_block_push_label(codegen->entry, body_label_name);
                 for (ptrdiff_t i = 0; i < arrlen(st.as.if_st.body); i++) {
-                    generate_statement(codegen, st.as.if_st.body[i]);
+                    generate_statement(codegen, st.as.if_st.body[i], block);
                 }
                 qbe_block_push_ins(codegen->entry, (QBEInstruction) { .type = QIT_JMP, .jmp = { .label = header_label_name } });
                 qbe_block_push_label(codegen->entry, out_label_name);
@@ -315,4 +244,26 @@ void generate_statement(Codegen* codegen, Statement st) {
                 return;
             } 
         }
+}
+
+void generate_store(QBEBlock* block, QBEValue val, char* into) {
+    qbe_block_push_ins(block, (QBEInstruction) {
+        .type = QIT_STOREW,
+        .storew = {
+            .value = val,
+            .name = into,
+        }
+    });
+}
+QBEValue generate_cmp(QBEBlock* block, QBEComparisonType cmp, QBEValueType element_type, QBEValue l, QBEValue r, QBEValue into) { 
+    qbe_block_assign_ins(block, (QBEInstruction) {
+        .type = QIT_CMP,
+        .cmp = {
+            .type = element_type,
+            .cmp = cmp,
+            .l = l,
+            .r = r
+        }
+    }, QVT_WORD, into);
+    return into;
 }

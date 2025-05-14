@@ -21,8 +21,10 @@ typedef struct {
 
 
 void generate_code(Codegen* codegen, Statement* sts);
-void generate_statement(Codegen* codegen, Statement st);
-QBEValue generate_expr(Codegen* codegen, const Expr* expr);
+void generate_statement(Codegen* codegen, Statement st, QBEBlock* block);
+QBEValue generate_expr(Codegen* codegen, const Expr* expr, QBEBlock* block);
 char* fresh_temp(Codegen* codegen);
 
+void generate_store(QBEBlock* block, QBEValue val, char* into);
+QBEValue generate_cmp(QBEBlock* block, QBEComparisonType cmp, QBEValueType element_type, QBEValue l, QBEValue r, QBEValue into);
 #endif
