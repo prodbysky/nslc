@@ -43,8 +43,15 @@ typedef enum {
     ST_SET_VARIABLE,
     // while <cond> { <body> }
     ST_WHILE,
+    // fn <name>() <ret_type> {...}
+    ST_FN_DEFINITION,
     ST_ERROR
 } StatementType;
+
+typedef struct {
+    char* name;
+    char* type;
+} FnArg;
 
 typedef struct Statement {
     StatementType type;
@@ -68,6 +75,12 @@ typedef struct Statement {
             Expr* cond;
             struct Statement* body;
         } while_st;
+        struct {
+            char* name;
+            char* ret_type;
+            struct Statement* body;
+            FnArg* args;
+        } fn_def;
     } as;
 } Statement;
 
@@ -95,6 +108,7 @@ bool parser_let_statement(Parser* parser, Statement** statements);
 bool parser_return_statement(Parser* parser, Statement** statements);
 bool parser_if_statement(Parser* parser, Statement** statements);
 bool parser_while_statement(Parser* parser, Statement** statements);
+bool parser_fn_statement(Parser* parser, Statement** statements);
 int parser_current_token_precedence(const Parser* parser);
 void parser_error_display(ParserError error, char* file_content, char* input_name);
 

@@ -133,6 +133,7 @@ bool parser_statement(Parser* parser, Statement** statements) {
             if (t.as.keyword == TK_LET) {if (!parser_let_statement(parser, statements)) { return false; } return true; }
             if (t.as.keyword == TK_IF) {if (!parser_if_statement(parser, statements)) { return false; } return true; }
             if (t.as.keyword == TK_WHILE) {if (!parser_while_statement(parser, statements)) { return false; } return true; }
+            if (t.as.keyword == TK_FN) {if (!parser_fn_statement(parser, statements)) { return false; } return true; }
             break;
         }
         case TT_IDENT: {
@@ -285,6 +286,63 @@ bool parser_while_statement(Parser* parser, Statement** statements) {
         }
     };
     arrput(*statements, st);
+
+    return true;
+}
+
+bool parser_fn_args(Parser* parser, FnArg** args) {
+    while (true) {
+        if (parser_peek(parser).type == TT_CLOSEPAREN) {
+            break;
+        } 
+        FnArg arg = {0};
+        if (!parser_expect(parser, TT_IDENT, "Expected arg name in fn arg definition")) return false;
+        arg.name = parser_next(parser).as.ident;
+        if (!parser_expect(parser, TT_IDENT, "Expected arg type in fn arg definition")) return false;
+        arg.type = parser_next(parser).as.ident;
+        arrput(*args, arg);
+        if (parser_peek(parser).type != TT_COMMA) {
+            break;
+        } 
+    }
+    return true;
+}
+
+bool parser_fn_statement(Parser* parser, Statement** statements) {
+    Location loc = parser_next(parser).loc;
+
+    if (!parser_expect(parser, TT_IDENT, "Expected function name after `fn`")) return false;
+    char* fn_name = parser_next(parser).as.ident;
+    if (!parser_expect(parser, TT_OPENPAREN, "Expected `(` after function name")) return false;
+    parser_next(parser);
+    FnArg* args = NULL;
+    if (!parser_fn_args(parser, &args)) {arrfree(args); fprintf(stderr, "Failed to parse function arg definitions\n"); return false;}
+    if (!parser_expect(parser, TT_CLOSEPAREN, "Expected `)` after function args")) return false;
+    parser_next(parser);
+    if (!parser_expect(parser, TT_IDENT, "Expected function return type after (args...)")) return false;
+    char* ret_type = parser_next(parser).as.ident;
+    if (!parser_expect(parser, TT_OPENCURLY, "Expected `{` after function return type")) return false;
+    parser_next(parser);
+    Statement* sts = NULL;
+    while (!parser_expect(parser, TT_CLOSECURLY, "Skipping")) {
+        if (!parser_statement(parser, &sts)) {
+            fprintf(stderr, "Failed to parse fn body due to invalid statement\n");
+            return false;
+        }
+    }
+    parser_next(parser);
+
+    Statement fn = {
+        .loc = loc,
+        .type = ST_FN_DEFINITION,
+        .as.fn_def = {
+            .name = fn_name,
+            .ret_type = ret_type,
+            .body = sts,
+            .args = args
+        }
+    };
+    arrput(*statements, fn);
 
     return true;
 }

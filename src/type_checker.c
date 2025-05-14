@@ -14,8 +14,38 @@ bool type_check(TypeChecker* checker) {
     return checker->err;
 }
 
+CheckerVariable fn_arg_to_checker_var(FnArg arg) {
+    if (strcmp(arg.type, "i32") == 0) {
+        return (CheckerVariable) {
+            .type = CT_INT,
+            .name = arg.name
+        };
+    }
+    if (strcmp(arg.type, "bool") == 0) {
+        return (CheckerVariable) {
+            .type = CT_BOOL,
+            .name = arg.name
+        };
+    }
+    assert(false);
+}
+
 static void type_check_st(TypeChecker* checker, Statement st) {
     switch (st.type) {
+        case ST_FN_DEFINITION: {
+            CheckerVariable* saved = checker->vars;
+            checker->vars = NULL;
+            for (ptrdiff_t i = 0; i < arrlen(st.as.fn_def.args); i++) {
+                arrput(checker->vars, fn_arg_to_checker_var(st.as.fn_def.args[i]));
+            }
+            for (ptrdiff_t i = 0; i < arrlen(st.as.fn_def.body); i++) {
+                type_check_st(checker, st.as.fn_def.body[i]);
+            }
+
+            arrfree(checker->vars);
+            checker->vars = saved;
+            return;
+        }
         case ST_VARIABLE_DEFINE: {
             CheckerType expression_type = type_check_expr(checker, st.as.var_def.value);
             if (expression_type == CT_ERROR) {

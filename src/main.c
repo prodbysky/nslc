@@ -106,8 +106,8 @@ bool write_and_compile_ir(Codegen* codegen, Statement* statements, char* out_nam
     if (!cmd_run_sync_and_reset(&cmd)) return false;
     cmd_append(&cmd, "cc", "-o", out_name, "main.s");
     if (!cmd_run_sync_and_reset(&cmd)) return false;
-    cmd_append(&cmd, "rm", "main.s", "main.ssa");
-    if (!cmd_run_sync_and_reset(&cmd)) return false;
+    // cmd_append(&cmd, "rm", "main.s", "main.ssa");
+    // if (!cmd_run_sync_and_reset(&cmd)) return false;
     free(cmd.items);
     return true;
 }

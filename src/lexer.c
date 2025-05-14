@@ -116,6 +116,11 @@ bool lexer_parse_token(Lexer* lexer) {
             token.as.ident = NULL;
             token.as.keyword = TK_FALSE;
         }
+        if (strcmp(str, "fn") == 0) {
+            token.type = TT_KEYWORD;
+            token.as.ident = NULL;
+            token.as.keyword = TK_FN;
+        }
         arrput(lexer->tokens, token);
         return true;
     }
@@ -206,6 +211,16 @@ bool lexer_parse_token(Lexer* lexer) {
             arrput(lexer->tokens, token);
             return true;
         }
+        case ',': {
+            Location loc = lexer->source.loc;
+            lexer_next(lexer);
+            const Token token = {
+                .type = TT_COMMA,
+                .loc = loc,
+            };
+            arrput(lexer->tokens, token);
+            return true;
+        }
     }
 
     lexer->error = (LexerError) {
@@ -249,6 +264,10 @@ void token_print(Token t) {
             printf("%lu:%lu :\n", t.loc.row, t.loc.col);
             break;
         }
+        case TT_COMMA: {
+            printf("%lu:%lu ,\n", t.loc.row, t.loc.col);
+            break;
+        }
         case TT_EQUAL: {
             printf("%lu:%lu =\n", t.loc.row, t.loc.col);
             break;
@@ -282,6 +301,7 @@ void token_print(Token t) {
                 case TK_WHILE: keyword_display = "while"; break;
                 case TK_TRUE: keyword_display = "true"; break;
                 case TK_FALSE: keyword_display = "false"; break;
+                case TK_FN: keyword_display = "fn"; break;
             }
             printf("%lu:%lu %s\n", t.loc.row, t.loc.col, keyword_display);
             break;

@@ -13,6 +13,7 @@ typedef enum {
     TT_KEYWORD,
     TT_SEMICOLON,
     TT_COLON,
+    TT_COMMA,
     TT_EQUAL,
     TT_OPENPAREN,
     TT_CLOSEPAREN,
@@ -28,6 +29,7 @@ typedef enum {
     TK_WHILE,
     TK_FALSE,
     TK_TRUE,
+    TK_FN,
 } TokenKeyword;
 
 // One indexed location
